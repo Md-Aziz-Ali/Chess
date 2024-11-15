@@ -10,6 +10,6 @@ class ChessGame(private val context: Context) {
 
     fun startGame(gridLayout: GridLayout) {
         // Set up the chessboard UI and initialize the pieces
-        chessBoard.setupBoard(gridLayout)
+        chessBoard.startTheGame(gridLayout)
     }
 }

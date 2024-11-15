@@ -8,6 +8,7 @@ import android.widget.ImageView
 import android.app.AlertDialog
 import android.content.ContentValues.TAG
 import android.util.Log
+import android.view.LayoutInflater
 import android.widget.Toast
 import kotlinx.coroutines.currentCoroutineContext
 import kotlin.math.log
@@ -38,8 +39,13 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
     val HIGHLIGHT_DESTINATION = Color.parseColor("#00FF00")  // Green
 
 
-    fun setupBoard(gridLayout: GridLayout) {
+    fun startTheGame(gridLayout: GridLayout) {
         this.gridLayout = gridLayout
+        setupBoard(gridLayout)
+    }
+
+    fun setupBoard(gridLayout: GridLayout) {
+//        this.gridLayout = gridLayout
         gridLayout.rowCount = 8
         gridLayout.columnCount = 8
 
@@ -118,11 +124,7 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
             // Make the move
             makeMove(gridLayout, row, col, selectedRow, selectedCol)
 
-            // Switch turns after a valid move
-            gameState.switchTurn()
 
-            // Clear the selection
-            selectedPiece = null
             removePossibleMoves(gridLayout)
         }
     }
@@ -223,6 +225,9 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
         gameState.previousMoves.clear()
         removeHighlightedMoves(gridLayout)
 
+        // clear the redo stack
+        gameState.redoStack.clear()
+
         // Check if the move involves a king or a rook
         val movedPiece = gameState.board[selectedRow][selectedCol]
 
@@ -266,7 +271,7 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
                     piece = gameState.board[selectedRow][col],
                     startPosition = Pair(selectedRow, selectedCol),
                     endPosition = Pair(selectedRow, col),
-                    isCastle = false  // Mark this as a castling move
+                    isCastle = true  // Mark this as a castling move
                 )
             )
 
@@ -283,8 +288,15 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
                     isCastle = true  // Mark this as a castling move
                 )
             )
+            gameState.undoStack.add(gameState.previousMoves)
             updateGridLayout(gridLayout, selectedRow, rookCol, selectedRow, newRookCol)
             highlightMoves(gridLayout, selectedRow, selectedCol,selectedRow, rookCol)
+
+            // Switch turns after a valid move
+            gameState.switchTurn()
+
+            // Clear the selection
+            selectedPiece = null
 
         }
         // check for en passant
@@ -310,12 +322,29 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
                 )
             )
 
+            gameState.undoStack.add(gameState.previousMoves)
             updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
+
+            // Switch turns after a valid move
+            gameState.switchTurn()
+
+            // Clear the selection
+            selectedPiece = null
         }
         else {
             // Regular move
-            gameState.board[row][col] = gameState.board[selectedRow][selectedCol]
-            gameState.board[selectedRow][selectedCol] = ""
+            if(gameState.board[selectedRow][selectedCol].endsWith("P") && (row == 0 || row == 7)) {
+                gameState.board[selectedRow][selectedCol] = ""
+                showImagePopup(selectedRow, selectedCol, row, col)
+//                updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
+//                resetBoard()
+            }
+            else {
+                gameState.board[row][col] = gameState.board[selectedRow][selectedCol]
+                gameState.board[selectedRow][selectedCol] = ""
+                updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
+                checkCheckMateAndSwitchTurn()
+            }
 
             // Add the regular move to the array
             gameState.previousMoves.add(
@@ -326,11 +355,10 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
                     isCastle = false  // Mark this as a regular move
                 )
             )
-            updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
+            gameState.undoStack.add(gameState.previousMoves)
+
+//            updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
             highlightMoves(gridLayout, selectedRow, selectedCol, row, col)
-        }
-        if(isCheckMate(gameState.currentTurn)) {
-            showWinnerDialog(context, gameState.winner)
         }
     }
 
@@ -374,25 +402,53 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
         dialog.show()
     }
 
+    fun print() {
+        for (row in 0 until 8) {
+            var rowString = ""
+            for (col in 0 until 8) {
+                val piece = gameState.board[row][col]
+                rowString += if (piece.isNotEmpty()) "$piece " else "- "  // Use "-" for empty squares
+            }
+            Log.d(TAG, "resetBoard: Row $row: $rowString")
+        }
+    }
+
+    fun setUptTheBoardAgain() {
+        for (row in 0 until 8) {
+            for (col in 0 until 8) {
+                val piece = gameState.board[row][col]
+                val square = gridLayout.getChildAt(row * 8 + col) as ImageView
+
+                // Set alternating background color for the chessboard squares
+                val backgroundColor = if ((row + col) % 2 == 0) LIGHT_COLOR else DARK_COLOR
+                square.setBackgroundColor(backgroundColor)
+
+                // Set the piece image if present, otherwise clear the square
+                if (piece.isNotEmpty()) {
+                    val drawable = getPieceDrawable(piece) // This method retrieves drawable for piece type
+                    square.setImageResource(getPieceDrawable(piece))
+                } else {
+                    square.setImageDrawable(null) // Empty square if no piece
+                }
+            }
+        }
+    }
+
     fun resetBoard() {
         gameState = GameState()
-        setupBoard(gridLayout)
+        highlight.clear()
+        circleViews.clear()
+        moves.clear()
         selectedPiece = null
-//        for (row in 0 until 8) {
-//            var rowString = ""
-//            for (col in 0 until 8) {
-//                val piece = gameState.board[row][col]
-//                rowString += if (piece.isNotEmpty()) "$piece " else "- "  // Use "-" for empty squares
-//            }
-//            Log.d(TAG, "resetBoard: Row $row: $rowString")
-//        }
+        currSourceSquare = null
 
         chessRules = ChessRules(gameState)
         generateMoves = GenerateMoves(gameState)
 
-//        chessRules.reset()
-//        generateMoves.reset()
+        setUptTheBoardAgain()
     }
+
+
 
     fun performCastling(kingRow: Int, kingCol: Int, destinationCol: Int) {
         val rookCol = if (destinationCol > kingCol) 7 else 0 // 7 for kingside, 0 for queenside
@@ -414,10 +470,90 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
 
         // Clear the source square's image (empty the square)
         sourceSquare.setImageDrawable(null)
+//        resetBoard()
 
         // Set the image for the destination square
+//        destinationSquare.setImageDrawable(null)
         destinationSquare.setImageResource(getPieceDrawable(gameState.board[toRow][toCol]))
+//        resetBoard()
     }
+
+    fun showImagePopup(fromRow: Int, fromCol: Int, row: Int, col: Int) {
+        // Inflate the custom layout
+        val dialogView = LayoutInflater.from(context).inflate(R.layout.popup_dialog, null)
+
+        // Find the ImageViews in the layout if you want to set them programmatically
+        val image1 = dialogView.findViewById<ImageView>(R.id.image1)
+        val image2 = dialogView.findViewById<ImageView>(R.id.image2)
+        val image3 = dialogView.findViewById<ImageView>(R.id.image3)
+        val image4 = dialogView.findViewById<ImageView>(R.id.image4)
+
+        // Set images programmatically
+        if(gameState.isWhiteTurn) {
+            image1.setImageResource(R.drawable.rook_white)
+            image2.setImageResource(R.drawable.bishop_white)
+            image3.setImageResource(R.drawable.knight_white)
+            image4.setImageResource(R.drawable.queen_white)
+        }
+
+        // Build the AlertDialog
+        val dialog = AlertDialog.Builder(context)
+            .setView(dialogView)
+            .setCancelable(false) // Prevent closing by tapping outside
+            .create()
+
+        // Set click listeners to dismiss the dialog when an image is selected
+        image1.setOnClickListener {
+            // Perform action for Image 1
+            gameState.board[row][col] = if(gameState.isWhiteTurn) "wR" else "bR"
+            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
+            checkCheckMateAndSwitchTurn()
+            dialog.dismiss() // Close the dialog
+        }
+        image2.setOnClickListener {
+            // Perform action for Image 2
+            gameState.board[row][col] = if(gameState.isWhiteTurn) "wB" else "bB"
+            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
+            checkCheckMateAndSwitchTurn()
+            dialog.dismiss() // Close the dialog
+        }
+        image3.setOnClickListener {
+            // Perform action for Image 3
+            gameState.board[row][col] = if(gameState.isWhiteTurn) "wN" else "bN"
+            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
+            checkCheckMateAndSwitchTurn()
+            dialog.dismiss() // Close the dialog
+        }
+        image4.setOnClickListener {
+            // Perform action for Image 3
+            gameState.board[row][col] = if(gameState.isWhiteTurn) "wQ" else "bQ"
+            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
+            checkCheckMateAndSwitchTurn()
+            dialog.dismiss() // Close the dialog
+        }
+//        updateGridLayout(gridLayout, fromRow, fromCol, row, col)
+
+        // Show the dialog
+//        resetBoard()
+        dialog.show()
+    }
+
+    fun checkCheckMateAndSwitchTurn() {
+        val currentPlayer = if(gameState.isWhiteTurn) "w" else "b"
+        if(isCheckMate(currentPlayer)) {
+            showWinnerDialog(context, gameState.winner)
+        }
+        // Switch turns after a valid move
+        gameState.switchTurn()
+
+        // printing the board
+        print()
+
+        // Clear the selection
+        selectedPiece = null
+    }
+
+
 
     companion object {
         private const val LIGHT_COLOR = 0xFFF0D9B5.toInt()

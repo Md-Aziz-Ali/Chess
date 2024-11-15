@@ -6,6 +6,10 @@ class GameState {
     var isCheckMate = false
     var winner = ""
 
+    // Initialize the stacks for undo and redo operations
+    val undoStack = mutableListOf<MutableList<Move>>()
+    val redoStack = mutableListOf<MutableList<Move>>()
+
     var previousMoves: MutableList<Move> = mutableListOf()
 
     // Variable to track the current turn
