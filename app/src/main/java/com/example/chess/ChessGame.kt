@@ -4,12 +4,17 @@ import android.content.Context
 import android.widget.GridLayout
 
 class ChessGame(private val context: Context) {
-
-    private val gameState = GameState()  // Holds the game state (board state)
-    private val chessBoard = ChessBoard(context, gameState)  // Handles UI and places pieces
+    // Declare gameState and chessBoard as properties
+    private lateinit var gameState: GameState
+    private lateinit var chessBoard: ChessBoard
 
     fun startGame(gridLayout: GridLayout) {
+        // Initialize gameState and chessBoard
+        gameState = GameState()
+        chessBoard = ChessBoard(context, gameState)
+
         // Set up the chessboard UI and initialize the pieces
-        chessBoard.startTheGame(gridLayout)
+        chessBoard.updateUndoRedoButtons(canUndo = true, canRedo = true)
+        chessBoard.startTheGame(gridLayout) // Pass gridLayout as a parameter
     }
 }

@@ -1,5 +1,6 @@
 package com.example.chess
 
+import android.app.Activity
 import android.content.Context
 import android.graphics.Color
 import android.view.Gravity
@@ -14,6 +15,10 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlin.math.log
 
 class ChessBoard(private val context: Context, var gameState: GameState) {
+
+    val undoRedo = UndoRedo(context, gameState)
+    private val undoImage: ImageView = (context as Activity).findViewById(R.id.imageView)
+    private val redoImage: ImageView = (context as Activity).findViewById(R.id.imageView2)
 
     val highlight = mutableListOf<Int>()
     var generateMoves = GenerateMoves(gameState)
@@ -38,6 +43,17 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
     val HIGHLIGHT_SOURCE = Color.parseColor("#FFD700")  // Gold
     val HIGHLIGHT_DESTINATION = Color.parseColor("#00FF00")  // Green
 
+    fun updateUndoRedoButtons(canUndo: Boolean, canRedo: Boolean) {
+        undoImage?.let {
+            it.isEnabled = canUndo
+            it.alpha = if (canUndo) 1.0f else 0.5f
+        }
+
+        redoImage?.let {
+            it.isEnabled = canRedo
+            it.alpha = if (canRedo) 1.0f else 0.5f
+        }
+    }
 
     fun startTheGame(gridLayout: GridLayout) {
         this.gridLayout = gridLayout
@@ -71,7 +87,7 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
                     // Initialize the piece on this square
                     val piece = gameState.board[row][col]
                     if (piece.isNotEmpty()) {
-                        square.setImageResource(getPieceDrawable(piece))
+                        square.setImageResource(gameState.getPieceDrawable(piece))
                     }
 
                     // Handle click event for each square
@@ -127,24 +143,13 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
 
             removePossibleMoves(gridLayout)
         }
-    }
-
-    // Function to map the piece identifier to the corresponding drawable resource
-    private fun getPieceDrawable(piece: String): Int {
-        return when (piece) {
-            "wP" -> R.drawable.pawn_white
-            "wR" -> R.drawable.rook_white
-            "wN" -> R.drawable.knight_white
-            "wB" -> R.drawable.bishop_white
-            "wQ" -> R.drawable.queen_white
-            "wK" -> R.drawable.king_white
-            "bP" -> R.drawable.pawn_black
-            "bR" -> R.drawable.rook_black
-            "bN" -> R.drawable.knight_black
-            "bB" -> R.drawable.bishop_black
-            "bQ" -> R.drawable.queen_black
-            "bK" -> R.drawable.king_black
-            else -> 0
+        undoImage.setOnClickListener {
+            undoRedo.undo(gridLayout)
+            setUptTheBoardAgain()
+        }
+        redoImage.setOnClickListener {
+            undoRedo.redo(gridLayout)
+            setUptTheBoardAgain()
         }
     }
 
@@ -220,9 +225,23 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
     }
 
     fun makeMove(gridLayout: GridLayout, row: Int, col: Int, selectedRow: Int, selectedCol: Int) {
-        val previousMovesCopy = gameState.previousMoves.map { it.copy() }.toTypedArray()
+
+        var previousMovesCopy = Move(
+            capturedPiece = "",
+            startPosition = Pair(-1, -1),
+            endPosition = Pair(-1, -1),
+            isCastle = false,
+            tookOtherPiece = "",
+            tookPosition = Pair(-1, -1),
+            rookStartPosition = Pair(-1, -1),
+            rookEndPosition = Pair(-1, -1),
+            isEnPassant = false,
+            pawnPosition = Pair(-1, -1),
+        )
+        if(gameState.zeroMoves == false)
+            previousMovesCopy = gameState.previousMoves
         // Clear previous moves before adding the new one
-        gameState.previousMoves.clear()
+//        gameState.previousMoves.clear()
         removeHighlightedMoves(gridLayout)
 
         // clear the redo stack
@@ -266,43 +285,59 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
             performCastling(selectedRow, selectedCol, col)
 
             // Add the castling move to the array
-            gameState.previousMoves.add(
+            val kingRow = selectedRow
+            val kingCol = selectedCol
+            val destinationCol = col
+            val rookCol = if (destinationCol > kingCol) 7 else 0 // 7 for kingside, 0 for queenside
+            val newRookCol = if (destinationCol > kingCol) destinationCol - 1 else destinationCol + 1
+            gameState.previousMoves =
                 Move(
-                    piece = gameState.board[selectedRow][col],
+                    capturedPiece = gameState.board[row][col],
                     startPosition = Pair(selectedRow, selectedCol),
                     endPosition = Pair(selectedRow, col),
-                    isCastle = true  // Mark this as a castling move
+                    isCastle = true, // Mark this as a castling move
+                    tookOtherPiece = "",
+                    tookPosition = Pair(-1, -1),
+                    rookStartPosition = Pair(kingRow, rookCol),
+                    rookEndPosition = Pair(kingRow, newRookCol),
+                    isEnPassant = false,
+                    pawnPosition = Pair(-1, -1)
                 )
-            )
+
 
             updateGridLayout(gridLayout, selectedRow, selectedCol, selectedRow, col)
 
             // Rook's move for castling
-            val rookCol = if (col > selectedCol) 7 else 0
-            val newRookCol = if (col > selectedCol) col - 1 else col + 1
-            gameState.previousMoves.add(
-                Move(
-                    piece = gameState.board[selectedRow][newRookCol],
-                    startPosition = Pair(selectedRow, rookCol),
-                    endPosition = Pair(selectedRow, newRookCol),
-                    isCastle = true  // Mark this as a castling move
-                )
-            )
+//            val rookCol = if (col > selectedCol) 7 else 0
+//            val newRookCol = if (col > selectedCol) col - 1 else col + 1
+//            gameState.previousMoves =
+//                Move(
+//                    piece = gameState.board[selectedRow][newRookCol],
+//                    startPosition = Pair(selectedRow, rookCol),
+//                    endPosition = Pair(selectedRow, newRookCol),
+//                    isCastle = true, // Mark this as a castling move
+//                    tookOtherPiece = "",
+//                    tookPosition = Pair(-1,-1)
+//                )
+
             gameState.undoStack.add(gameState.previousMoves)
+//            ToastPrint()
+
             updateGridLayout(gridLayout, selectedRow, rookCol, selectedRow, newRookCol)
             highlightMoves(gridLayout, selectedRow, selectedCol,selectedRow, rookCol)
 
             // Switch turns after a valid move
-            gameState.switchTurn()
-
+//            gameState.switchTurn()
+            checkCheckMateAndSwitchTurn()
             // Clear the selection
             selectedPiece = null
+            gameState.zeroMoves = false
 
         }
         // check for en passant
-        else if(movedPiece.endsWith("P") && gameState.board[row][col] == "" && col != selectedCol) {
-            val removeRowPiece = previousMovesCopy[0].endPosition.first
-            val removeColPiece = previousMovesCopy[0].endPosition.second
+        else if(movedPiece.endsWith("P") && gameState.board[row][col] == "" && col != selectedCol && gameState.zeroMoves == false) {
+            val removeRowPiece = previousMovesCopy.endPosition.first
+            val removeColPiece = previousMovesCopy.endPosition.second
 
             val removePieceSquare = gridLayout.getChildAt(removeRowPiece * 8 + removeColPiece) as ImageView
             removePieceSquare.setImageDrawable(null)
@@ -310,26 +345,36 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
             // move
             gameState.board[row][col] = gameState.board[selectedRow][selectedCol]
             gameState.board[selectedRow][selectedCol] = ""
-            gameState.board[removeRowPiece][removeColPiece] = ""
+
 
             // add the move to the array
-            gameState.previousMoves.add(
+            gameState.previousMoves =
                 Move(
-                    piece = gameState.board[row][col],
+                    capturedPiece = gameState.board[removeRowPiece][removeColPiece],
                     startPosition = Pair(selectedRow, selectedCol),
                     endPosition = Pair(row, col),
-                    isCastle = false  // Mark this as a regular move
+                    isCastle = false,  // Mark this as a regular move
+                    tookOtherPiece = if (gameState.isWhiteTurn) "wP" else "bP",
+                    tookPosition = Pair(removeRowPiece, removeColPiece),
+                    rookStartPosition = Pair(-1, -1),
+                    rookEndPosition = Pair(-1, -1),
+                    isEnPassant = true,
+                    pawnPosition = Pair(removeRowPiece, removeColPiece)
                 )
-            )
+            gameState.board[removeRowPiece][removeColPiece] = ""
+
 
             gameState.undoStack.add(gameState.previousMoves)
+//            ToastPrint()
+
             updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
 
             // Switch turns after a valid move
-            gameState.switchTurn()
-
+//            gameState.switchTurn()
+            checkCheckMateAndSwitchTurn()
             // Clear the selection
             selectedPiece = null
+            gameState.zeroMoves = false
         }
         else {
             // Regular move
@@ -340,30 +385,49 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
 //                resetBoard()
             }
             else {
+                // Add the regular move to the array
+                gameState.previousMoves =
+                    Move(
+                        capturedPiece = gameState.board[row][col],
+                        startPosition = Pair(selectedRow, selectedCol),
+                        endPosition = Pair(row, col),
+                        isCastle = false,
+                        tookOtherPiece = gameState.board[selectedRow][selectedCol],
+                        tookPosition = Pair(selectedRow, selectedCol),
+                        rookStartPosition = Pair(-1, -1),
+                        rookEndPosition = Pair(-1, -1),
+                        isEnPassant = false,
+                        pawnPosition = Pair(-1, -1),  // Mark this as a regular move
+                    )
+
+
+                gameState.undoStack.add(gameState.previousMoves)
+//                ToastPrint()
+
                 gameState.board[row][col] = gameState.board[selectedRow][selectedCol]
                 gameState.board[selectedRow][selectedCol] = ""
                 updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
                 checkCheckMateAndSwitchTurn()
             }
 
-            // Add the regular move to the array
-            gameState.previousMoves.add(
-                Move(
-                    piece = gameState.board[row][col],
-                    startPosition = Pair(selectedRow, selectedCol),
-                    endPosition = Pair(row, col),
-                    isCastle = false  // Mark this as a regular move
-                )
-            )
-            gameState.undoStack.add(gameState.previousMoves)
-
 //            updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
             highlightMoves(gridLayout, selectedRow, selectedCol, row, col)
         }
     }
 
+    fun Toast1Print() {
+        var a = gameState.undoStack.last()
+        val startRow = a.startPosition.first
+        val startCol = a.startPosition.second
+
+        val endRow = a.endPosition.first
+        val endCol = a.endPosition.second
+        Toast.makeText(context, "${startRow} ${startCol} ${endRow} ${endCol}", Toast.LENGTH_SHORT).show()
+    }
+
     // Function to check checkmate
     fun isCheckMate(playerColor: String): Boolean {
+        Log.d(TAG, "${gameState.isWhiteTurn}")
         val opponentColor = if (playerColor == "w") "b" else "w"
         var boardCopy = chessRules.copyBoard(gameState.board)
         if(!chessRules.isKingInCheck(opponentColor, boardCopy))
@@ -403,11 +467,12 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
     }
 
     fun print() {
+
         for (row in 0 until 8) {
             var rowString = ""
             for (col in 0 until 8) {
                 val piece = gameState.board[row][col]
-                rowString += if (piece.isNotEmpty()) "$piece " else "- "  // Use "-" for empty squares
+                rowString += if (piece.isNotEmpty()) "$piece " else "-- "  // Use "-" for empty squares
             }
             Log.d(TAG, "resetBoard: Row $row: $rowString")
         }
@@ -425,8 +490,8 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
 
                 // Set the piece image if present, otherwise clear the square
                 if (piece.isNotEmpty()) {
-                    val drawable = getPieceDrawable(piece) // This method retrieves drawable for piece type
-                    square.setImageResource(getPieceDrawable(piece))
+                    val drawable = gameState.getPieceDrawable(piece) // This method retrieves drawable for piece type
+                    square.setImageResource(gameState.getPieceDrawable(piece))
                 } else {
                     square.setImageDrawable(null) // Empty square if no piece
                 }
@@ -474,7 +539,7 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
 
         // Set the image for the destination square
 //        destinationSquare.setImageDrawable(null)
-        destinationSquare.setImageResource(getPieceDrawable(gameState.board[toRow][toCol]))
+        destinationSquare.setImageResource(gameState.getPieceDrawable(gameState.board[toRow][toCol]))
 //        resetBoard()
     }
 
@@ -543,11 +608,15 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
         if(isCheckMate(currentPlayer)) {
             showWinnerDialog(context, gameState.winner)
         }
+        else {
+//            Toast.makeText(context, "not checkmate", Toast.LENGTH_SHORT).show()
+        }
         // Switch turns after a valid move
         gameState.switchTurn()
 
         // printing the board
         print()
+        gameState.zeroMoves = false
 
         // Clear the selection
         selectedPiece = null

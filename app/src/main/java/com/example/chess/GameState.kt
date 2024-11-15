@@ -7,13 +7,18 @@ class GameState {
     var winner = ""
 
     // Initialize the stacks for undo and redo operations
-    val undoStack = mutableListOf<MutableList<Move>>()
-    val redoStack = mutableListOf<MutableList<Move>>()
+//    var undoStack = mutableListOf<MutableList<Move>>()
+//    var redoStack = mutableListOf<MutableList<Move>>()
 
-    var previousMoves: MutableList<Move> = mutableListOf()
+    var undoStack = mutableListOf<Move>()  // Empty list of Move objects
+    var redoStack = mutableListOf<Move>()  // Empty list of Move objects
+
+//    var previousMoves: MutableList<Move> = mutableListOf()
+    lateinit var previousMoves: Move
+    var zeroMoves = true
 
     // Variable to track the current turn
-    var currentTurn: String = "w"  // "w" for White, "b" for Black
+//    var currentTurn: String = "w"  // "w" for White, "b" for Black
     var isWhiteTurn = true
 
     var whiteKingHasMoved = false
@@ -58,6 +63,25 @@ class GameState {
             true
         } else {
             false
+        }
+    }
+
+    // Function to map the piece identifier to the corresponding drawable resource
+    fun getPieceDrawable(piece: String): Int {
+        return when (piece) {
+            "wP" -> R.drawable.pawn_white
+            "wR" -> R.drawable.rook_white
+            "wN" -> R.drawable.knight_white
+            "wB" -> R.drawable.bishop_white
+            "wQ" -> R.drawable.queen_white
+            "wK" -> R.drawable.king_white
+            "bP" -> R.drawable.pawn_black
+            "bR" -> R.drawable.rook_black
+            "bN" -> R.drawable.knight_black
+            "bB" -> R.drawable.bishop_black
+            "bQ" -> R.drawable.queen_black
+            "bK" -> R.drawable.king_black
+            else -> 0
         }
     }
 

@@ -39,11 +39,13 @@ class GenerateMoves(private val gameState: GameState) {
     }
 
     fun checkEnPassantMove(row: Int, col: Int, playerColor: String): Boolean {
-        var possible = gameState.previousMoves[0].endPosition.first == row && gameState.previousMoves[0].endPosition.second == col
+        var movedTo = gameState.previousMoves.endPosition
+        var piece = gameState.board[movedTo.first][movedTo.second]
+        var possible = gameState.previousMoves.endPosition.first == row && gameState.previousMoves.endPosition.second == col && piece.endsWith("P")
 
         // done opposite to find the start row of the pawn of the opponent
         var startRow = if(playerColor == "w") 1 else 6
-//        possible = possible && gameState.previousMoves[0].startPosition.first == startRow && gameState.previousMoves[0].startPosition.second == col
+//        possible = possible && gameState.previousMoves.startPosition.first == startRow && gameState.previousMoves.startPosition.second == col
         return possible
     }
 
@@ -53,7 +55,8 @@ class GenerateMoves(private val gameState: GameState) {
         val targetRow = row + direction
 
         // For en passant move
-        if(gameState.previousMoves.size == 1) {
+//        if(true) {
+        if(gameState.zeroMoves == false) {
             if(isWithinBounds(row, col + 1) && checkEnPassantMove(row, col + 1, playerColor)) {
                 if(!chessRules.willKingBeInCheck(playerColor, row, col, targetRow, col + 1)) {
                     moves.add(Pair(true, Pair(targetRow, col + 1)))
