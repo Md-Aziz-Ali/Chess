@@ -15,7 +15,7 @@ class UndoRedo(private val context: Context, var gameState: GameState) {
         var move = gameState.undoStack.removeAt(gameState.undoStack.lastIndex)
         gameState.redoStack.add(move)
 
-        var piece = move.capturedPiece
+        var piece = move.piece
         var startPosition = move.startPosition
         val endPosition = move.endPosition
 
@@ -27,20 +27,8 @@ class UndoRedo(private val context: Context, var gameState: GameState) {
         var tookOtherPiece = move.tookOtherPiece
         var tookPiecePosition = move.tookPosition
         var pawnPosition = move.pawnPosition
+        var isUpgraded = move.isUpgraded
 
-//        Toast.makeText(context, "${fromRow} ${fromCol} ${toRow} ${toCol}", Toast.LENGTH_LONG).show()
-
-        // Get the ImageViews for the source and destination squares
-//        val sourceSquare = gridLayout.getChildAt(fromRow * 8 + fromCol) as ImageView
-//        val destinationSquare = gridLayout.getChildAt(toRow * 8 + toCol) as ImageView
-//
-//        // Clear the source square's image (empty the square)
-//        destinationSquare.setImageDrawable(null)
-////        resetBoard()
-//
-//        // Set the image for the destination square
-////        destinationSquare.setImageDrawable(null)
-//        sourceSquare.setImageResource(gameState.getPieceDrawable(gameState.board[toRow][toCol]))
 
         if(isCastle) {
             gameState.board[startPosition.first][startPosition.second] = gameState.board[endPosition.first][endPosition.second]
@@ -59,11 +47,17 @@ class UndoRedo(private val context: Context, var gameState: GameState) {
             gameState.board[startPosition.first][startPosition.second] = gameState.board[endPosition.first][endPosition.second]
             gameState.board[endPosition.first][endPosition.second] = ""
             if(tookOtherPiece.isNotEmpty()) {
-                gameState.board[endPosition.first][endPosition.second] = piece
+                gameState.board[endPosition.first][endPosition.second] = tookOtherPiece
+            }
+            if(isUpgraded.isNotEmpty()) {
+                gameState.board[startPosition.first][startPosition.second] = if(gameState.isWhiteTurn) " bP" else "wP"
             }
         }
 
-
+        if(gameState.undoStack.isNotEmpty())
+            gameState.previousMoves = gameState.undoStack.last()
+        else
+            gameState.zeroMoves = true
         gameState.switchTurn()
 //        print()
     }
@@ -82,10 +76,11 @@ class UndoRedo(private val context: Context, var gameState: GameState) {
     fun redo(gridLayout: GridLayout) {
         if(gameState.redoStack.isEmpty())
             return
+        gameState.zeroMoves = false
         val move = gameState.redoStack.removeAt(gameState.redoStack.lastIndex)
         gameState.undoStack.add(move)
 
-        var piece = move.capturedPiece
+        var piece = move.piece
         var startPosition = move.startPosition
         val endPosition = move.endPosition
 
@@ -97,6 +92,7 @@ class UndoRedo(private val context: Context, var gameState: GameState) {
         var tookOtherPiece = move.tookOtherPiece
         var tookPiecePosition = move.tookPosition
         var pawnPosition = move.pawnPosition
+        var isUpgraded = move.isUpgraded
 
         if(isCastle) {
             gameState.board[endPosition.first][endPosition.second] = gameState.board[startPosition.first][startPosition.second]
@@ -117,7 +113,12 @@ class UndoRedo(private val context: Context, var gameState: GameState) {
 //            if(tookOtherPiece.isNotEmpty()) {
 //                gameState.board[endPosition.first][endPosition.second] = piece
 //            }
+            if(isUpgraded.isNotEmpty()) {
+                gameState.board[endPosition.first][endPosition.second] = isUpgraded
+            }
         }
+
+        gameState.previousMoves = move
         gameState.switchTurn()
     }
 }

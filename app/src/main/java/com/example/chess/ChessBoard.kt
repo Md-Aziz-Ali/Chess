@@ -144,12 +144,16 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
             removePossibleMoves(gridLayout)
         }
         undoImage.setOnClickListener {
+            removePossibleMoves(gridLayout)
             undoRedo.undo(gridLayout)
             setUptTheBoardAgain()
+            highlightMoves()
         }
         redoImage.setOnClickListener {
+            removePossibleMoves(gridLayout)
             undoRedo.redo(gridLayout)
             setUptTheBoardAgain()
+            highlightMoves()
         }
     }
 
@@ -190,7 +194,7 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
     }
 
     // Function to highlight the source and destination squares
-    fun highlightMoves(gridLayout: GridLayout, row1: Int, col1: Int, row2: Int, col2: Int) {
+    fun highlightMoves1(gridLayout: GridLayout, row1: Int, col1: Int, row2: Int, col2: Int) {
         highlight.clear()
         highlight.add(row1)
         highlight.add(col1)
@@ -205,8 +209,27 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
         destinationSquare.setBackgroundColor(HIGHLIGHT_DESTINATION)  // HIGHLIGHT_DESTINATION is a color for destination
     }
 
+    fun highlightMoves() {
+        if(gameState.zeroMoves)
+            return
+        var fromRow = gameState.previousMoves.startPosition.first
+        var fromCol = gameState.previousMoves.startPosition.second
+
+        var toRow = gameState.previousMoves.endPosition.first
+        var toCol = gameState.previousMoves.endPosition.second
+
+        val sourceSquare = gridLayout.getChildAt(fromRow * 8 + fromCol) as ImageView
+        val destinationSquare = gridLayout.getChildAt(toRow * 8 + toCol) as ImageView
+
+        // Highlight the source square
+        sourceSquare.setBackgroundColor(HIGHLIGHT_SOURCE)  // HIGHLIGHT_SOURCE is a color for highlighting the source
+        // Highlight the destination square
+        destinationSquare.setBackgroundColor(HIGHLIGHT_DESTINATION)  // HIGHLIGHT_DESTINATION is a color for destination
+
+    }
+
     // Function to remove the highlight from the previously highlighted squares
-    fun removeHighlightedMoves(gridLayout: GridLayout) {
+    fun removeHighlightedMoves1(gridLayout: GridLayout) {
         if (highlight.isNotEmpty()) {
             // Assuming highlight array has 4 values: [sourceRow, sourceCol, destinationRow, destinationCol]
             val sourceRow = highlight[0]
@@ -227,7 +250,7 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
     fun makeMove(gridLayout: GridLayout, row: Int, col: Int, selectedRow: Int, selectedCol: Int) {
 
         var previousMovesCopy = Move(
-            capturedPiece = "",
+            piece = "",
             startPosition = Pair(-1, -1),
             endPosition = Pair(-1, -1),
             isCastle = false,
@@ -237,12 +260,13 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
             rookEndPosition = Pair(-1, -1),
             isEnPassant = false,
             pawnPosition = Pair(-1, -1),
+            isUpgraded = ""
         )
         if(gameState.zeroMoves == false)
             previousMovesCopy = gameState.previousMoves
         // Clear previous moves before adding the new one
 //        gameState.previousMoves.clear()
-        removeHighlightedMoves(gridLayout)
+//        removeHighlightedMoves(gridLayout)
 
         // clear the redo stack
         gameState.redoStack.clear()
@@ -292,7 +316,7 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
             val newRookCol = if (destinationCol > kingCol) destinationCol - 1 else destinationCol + 1
             gameState.previousMoves =
                 Move(
-                    capturedPiece = gameState.board[row][col],
+                    piece = gameState.board[row][col],
                     startPosition = Pair(selectedRow, selectedCol),
                     endPosition = Pair(selectedRow, col),
                     isCastle = true, // Mark this as a castling move
@@ -301,11 +325,12 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
                     rookStartPosition = Pair(kingRow, rookCol),
                     rookEndPosition = Pair(kingRow, newRookCol),
                     isEnPassant = false,
-                    pawnPosition = Pair(-1, -1)
+                    pawnPosition = Pair(-1, -1),
+                    isUpgraded = ""
                 )
 
 
-            updateGridLayout(gridLayout, selectedRow, selectedCol, selectedRow, col)
+//            updateGridLayout(gridLayout, selectedRow, selectedCol, selectedRow, col)
 
             // Rook's move for castling
 //            val rookCol = if (col > selectedCol) 7 else 0
@@ -323,9 +348,10 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
             gameState.undoStack.add(gameState.previousMoves)
 //            ToastPrint()
 
-            updateGridLayout(gridLayout, selectedRow, rookCol, selectedRow, newRookCol)
-            highlightMoves(gridLayout, selectedRow, selectedCol,selectedRow, rookCol)
-
+//            updateGridLayout(gridLayout, selectedRow, rookCol, selectedRow, newRookCol)
+            setUptTheBoardAgain()
+//            highlightMoves(gridLayout, selectedRow, selectedCol,selectedRow, rookCol)
+            highlightMoves()
             // Switch turns after a valid move
 //            gameState.switchTurn()
             checkCheckMateAndSwitchTurn()
@@ -350,16 +376,17 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
             // add the move to the array
             gameState.previousMoves =
                 Move(
-                    capturedPiece = gameState.board[removeRowPiece][removeColPiece],
+                    piece = gameState.board[row][col],
                     startPosition = Pair(selectedRow, selectedCol),
                     endPosition = Pair(row, col),
                     isCastle = false,  // Mark this as a regular move
-                    tookOtherPiece = if (gameState.isWhiteTurn) "wP" else "bP",
+                    tookOtherPiece = if (gameState.isWhiteTurn) "bP" else "wP",
                     tookPosition = Pair(removeRowPiece, removeColPiece),
                     rookStartPosition = Pair(-1, -1),
                     rookEndPosition = Pair(-1, -1),
                     isEnPassant = true,
-                    pawnPosition = Pair(removeRowPiece, removeColPiece)
+                    pawnPosition = Pair(removeRowPiece, removeColPiece),
+                    isUpgraded = ""
                 )
             gameState.board[removeRowPiece][removeColPiece] = ""
 
@@ -367,8 +394,9 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
             gameState.undoStack.add(gameState.previousMoves)
 //            ToastPrint()
 
-            updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
-
+//            updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
+            setUptTheBoardAgain()
+            highlightMoves()
             // Switch turns after a valid move
 //            gameState.switchTurn()
             checkCheckMateAndSwitchTurn()
@@ -379,7 +407,6 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
         else {
             // Regular move
             if(gameState.board[selectedRow][selectedCol].endsWith("P") && (row == 0 || row == 7)) {
-                gameState.board[selectedRow][selectedCol] = ""
                 showImagePopup(selectedRow, selectedCol, row, col)
 //                updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
 //                resetBoard()
@@ -388,30 +415,35 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
                 // Add the regular move to the array
                 gameState.previousMoves =
                     Move(
-                        capturedPiece = gameState.board[row][col],
+                        piece = gameState.board[selectedRow][selectedCol],
                         startPosition = Pair(selectedRow, selectedCol),
                         endPosition = Pair(row, col),
                         isCastle = false,
-                        tookOtherPiece = gameState.board[selectedRow][selectedCol],
+                        tookOtherPiece = gameState.board[row][col],
                         tookPosition = Pair(selectedRow, selectedCol),
                         rookStartPosition = Pair(-1, -1),
                         rookEndPosition = Pair(-1, -1),
                         isEnPassant = false,
                         pawnPosition = Pair(-1, -1),  // Mark this as a regular move
+                        isUpgraded = ""
                     )
 
 
                 gameState.undoStack.add(gameState.previousMoves)
+                gameState.zeroMoves = false
+
 //                ToastPrint()
 
                 gameState.board[row][col] = gameState.board[selectedRow][selectedCol]
                 gameState.board[selectedRow][selectedCol] = ""
-                updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
+//                updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
+                setUptTheBoardAgain()
+                highlightMoves()
                 checkCheckMateAndSwitchTurn()
             }
 
 //            updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
-            highlightMoves(gridLayout, selectedRow, selectedCol, row, col)
+//            highlightMoves(gridLayout, selectedRow, selectedCol, row, col)
         }
     }
 
@@ -528,7 +560,7 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
         gameState.board[kingRow][rookCol] = ""
     }
 
-    fun updateGridLayout(gridLayout: GridLayout, fromRow: Int, fromCol: Int, toRow: Int, toCol: Int) {
+    fun updateGridLayout1(gridLayout: GridLayout, fromRow: Int, fromCol: Int, toRow: Int, toCol: Int) {
         // Get the ImageViews for the source and destination squares
         val sourceSquare = gridLayout.getChildAt(fromRow * 8 + fromCol) as ImageView
         val destinationSquare = gridLayout.getChildAt(toRow * 8 + toCol) as ImageView
@@ -541,6 +573,25 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
 //        destinationSquare.setImageDrawable(null)
         destinationSquare.setImageResource(gameState.getPieceDrawable(gameState.board[toRow][toCol]))
 //        resetBoard()
+    }
+
+    fun saveTheMoveForUpgradation(fromRow: Int, fromCol: Int, toRow: Int, toCol: Int, upgradedTo: String) {
+        gameState.previousMoves = Move(
+            piece = gameState.board[fromRow][fromCol],
+            startPosition = Pair(fromRow, fromCol),
+            endPosition = Pair(toRow, toCol),
+            isCastle = false,
+            rookStartPosition = Pair(-1, -1),
+            rookEndPosition = Pair(-1, -1),
+            isEnPassant = false,
+            pawnPosition = Pair(-1, -1),
+            tookOtherPiece = gameState.board[toRow][toCol],
+            tookPosition = Pair(-1, -1),
+            isUpgraded = upgradedTo
+        )
+        gameState.undoStack.add(gameState.previousMoves)
+        val a = gameState.previousMoves.tookOtherPiece
+        Toast.makeText(context, "${a}", Toast.LENGTH_SHORT).show()
     }
 
     fun showImagePopup(fromRow: Int, fromCol: Int, row: Int, col: Int) {
@@ -570,29 +621,49 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
         // Set click listeners to dismiss the dialog when an image is selected
         image1.setOnClickListener {
             // Perform action for Image 1
+            var upgradedTo = if(gameState.isWhiteTurn) "wR" else "bR"
+            saveTheMoveForUpgradation(fromRow, fromCol, row, col, upgradedTo)
             gameState.board[row][col] = if(gameState.isWhiteTurn) "wR" else "bR"
-            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
+            gameState.board[fromRow][fromCol] = ""
+//            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
+            setUptTheBoardAgain()
+            highlightMoves()
             checkCheckMateAndSwitchTurn()
             dialog.dismiss() // Close the dialog
         }
         image2.setOnClickListener {
             // Perform action for Image 2
+            var upgradedTo = if(gameState.isWhiteTurn) "wB" else "bB"
+            saveTheMoveForUpgradation(fromRow, fromCol, row, col, upgradedTo)
             gameState.board[row][col] = if(gameState.isWhiteTurn) "wB" else "bB"
-            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
+            gameState.board[fromRow][fromCol] = ""
+//            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
+            setUptTheBoardAgain()
+            highlightMoves()
             checkCheckMateAndSwitchTurn()
             dialog.dismiss() // Close the dialog
         }
         image3.setOnClickListener {
             // Perform action for Image 3
+            var upgradedTo = if(gameState.isWhiteTurn) "wN" else "bN"
+            saveTheMoveForUpgradation(fromRow, fromCol, row, col, upgradedTo)
             gameState.board[row][col] = if(gameState.isWhiteTurn) "wN" else "bN"
-            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
+            gameState.board[fromRow][fromCol] = ""
+//            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
+            setUptTheBoardAgain()
+            highlightMoves()
             checkCheckMateAndSwitchTurn()
             dialog.dismiss() // Close the dialog
         }
         image4.setOnClickListener {
             // Perform action for Image 3
+            var upgradedTo = if(gameState.isWhiteTurn) "wQ" else "bQ"
+            saveTheMoveForUpgradation(fromRow, fromCol, row, col, upgradedTo)
             gameState.board[row][col] = if(gameState.isWhiteTurn) "wQ" else "bQ"
-            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
+            gameState.board[fromRow][fromCol] = ""
+//            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
+            setUptTheBoardAgain()
+            highlightMoves()
             checkCheckMateAndSwitchTurn()
             dialog.dismiss() // Close the dialog
         }
