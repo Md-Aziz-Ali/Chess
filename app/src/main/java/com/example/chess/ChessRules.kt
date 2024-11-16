@@ -19,6 +19,16 @@ class ChessRules(private val gameState: GameState) {
         }
     }
 
+    fun isOnlyKingPresent(): Boolean {
+        for(row in 0 until 8) {
+            for(col in 0 until 8) {
+                if(gameState.board[row][col] != "" && gameState.board[row][col].endsWith("K") == false)
+                    return false
+            }
+        }
+        return true
+    }
+
     fun reset() {
         Log.d(TAG, "resetBoard: ChessRules")
         for (row in 0 until 8) {

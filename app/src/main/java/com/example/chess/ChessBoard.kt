@@ -16,6 +16,13 @@ import kotlin.math.log
 
 class ChessBoard(private val context: Context, var gameState: GameState) {
 
+    var whiteKingHasMoved = false
+    var blackKingHasMoved = false
+    var whiteLeftRookHasMoved = false
+    var whiteRightRookHasMoved = false
+    var blackLeftRookHasMoved = false
+    var blackRightRookHasMoved = false
+
     val undoRedo = UndoRedo(context, gameState)
     private val undoImage: ImageView = (context as Activity).findViewById(R.id.imageView)
     private val redoImage: ImageView = (context as Activity).findViewById(R.id.imageView2)
@@ -260,7 +267,13 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
             rookEndPosition = Pair(-1, -1),
             isEnPassant = false,
             pawnPosition = Pair(-1, -1),
-            isUpgraded = ""
+            isUpgraded = "",
+            whiteLeftRookMoved = false,
+            whiteRightRookMoved = false,
+            whiteKingMoved = false,
+            blackLeftRookMoved = false,
+            blackRightRookMoved = false,
+            blackKingMoved = false,
         )
         if(gameState.zeroMoves == false)
             previousMovesCopy = gameState.previousMoves
@@ -274,31 +287,58 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
         // Check if the move involves a king or a rook
         val movedPiece = gameState.board[selectedRow][selectedCol]
 
+        whiteKingHasMoved = false
+        blackKingHasMoved = false
+        whiteLeftRookHasMoved = false
+        whiteRightRookHasMoved = false
+        blackLeftRookHasMoved = false
+        blackRightRookHasMoved = false
+
 
         // Check if the moved piece is a king (ends with "K")
         if (movedPiece.endsWith("K")) {
-            if (movedPiece.startsWith("w")) {  // White King
-                gameState.whiteKingHasMoved = true
-            } else if (movedPiece.startsWith("b")) {  // Black King
-                gameState.blackKingHasMoved = true
+            if (movedPiece.startsWith("w") && gameState.whiteKingHasMoved == false) {  // White King
+                whiteKingHasMoved = true
+            } else if (movedPiece.startsWith("b") && gameState.blackKingHasMoved == false) {  // Black King
+                blackKingHasMoved = true
             }
         }
 
         // Check if the moved piece is a rook (ends with "R")
         if (movedPiece.endsWith("R")) {
             if (movedPiece.startsWith("w")) {  // White Rook
-                if (selectedCol == 0) {  // Left Rook
-                    gameState.whiteLeftRookHasMoved = true
-                } else if (selectedCol == 7) {  // Right Rook
-                    gameState.whiteRightRookHasMoved = true
+                if (selectedCol == 0 && gameState.whiteLeftRookHasMoved == false) {  // Left Rook
+                    whiteLeftRookHasMoved = true
+                } else if (selectedCol == 7 && gameState.whiteRightRookHasMoved == false) {  // Right Rook
+                    whiteRightRookHasMoved = true
                 }
             } else if (movedPiece.startsWith("b")) {  // Black Rook
-                if (selectedCol == 0) {  // Left Rook
-                    gameState.blackLeftRookHasMoved = true
-                } else if (selectedCol == 7) {  // Right Rook
-                    gameState.blackRightRookHasMoved = true
+                if (selectedCol == 0 && gameState.blackLeftRookHasMoved == false) {  // Left Rook
+                    blackLeftRookHasMoved = true
+                } else if (selectedCol == 7 && gameState.blackRightRookHasMoved == false) {  // Right Rook
+                    blackRightRookHasMoved = true
                 }
             }
+        }
+
+        if(whiteKingHasMoved)
+            gameState.whiteKingHasMoved = true
+        if(whiteLeftRookHasMoved)
+            gameState.whiteLeftRookHasMoved = true
+        if(whiteRightRookHasMoved)
+            gameState.whiteRightRookHasMoved = true
+        if(blackKingHasMoved)
+            gameState.blackKingHasMoved = true
+        if(blackLeftRookHasMoved)
+            gameState.blackLeftRookHasMoved = true
+        if(blackRightRookHasMoved)
+            gameState.blackRightRookHasMoved = true
+
+        if(movedPiece == "bR") {
+            Toast.makeText(context, "${gameState.blackLeftRookHasMoved} ${gameState.blackRightRookHasMoved}", Toast.LENGTH_SHORT).show()
+        }
+        if(movedPiece == "wR") {
+            Toast.makeText(context, "${gameState.whiteLeftRookHasMoved} ${gameState.whiteRightRookHasMoved}", Toast.LENGTH_SHORT).show()
         }
 
 
@@ -326,7 +366,13 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
                     rookEndPosition = Pair(kingRow, newRookCol),
                     isEnPassant = false,
                     pawnPosition = Pair(-1, -1),
-                    isUpgraded = ""
+                    isUpgraded = "",
+                    whiteLeftRookMoved = whiteLeftRookHasMoved,
+                    whiteRightRookMoved = whiteRightRookHasMoved,
+                    whiteKingMoved = whiteKingHasMoved,
+                    blackLeftRookMoved = blackLeftRookHasMoved,
+                    blackRightRookMoved = blackRightRookHasMoved,
+                    blackKingMoved = blackKingHasMoved,
                 )
 
 
@@ -386,7 +432,13 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
                     rookEndPosition = Pair(-1, -1),
                     isEnPassant = true,
                     pawnPosition = Pair(removeRowPiece, removeColPiece),
-                    isUpgraded = ""
+                    isUpgraded = "",
+                    whiteLeftRookMoved = whiteLeftRookHasMoved,
+                    whiteRightRookMoved = whiteRightRookHasMoved,
+                    whiteKingMoved = whiteKingHasMoved,
+                    blackLeftRookMoved = blackLeftRookHasMoved,
+                    blackRightRookMoved = blackRightRookHasMoved,
+                    blackKingMoved = blackKingHasMoved,
                 )
             gameState.board[removeRowPiece][removeColPiece] = ""
 
@@ -425,7 +477,13 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
                         rookEndPosition = Pair(-1, -1),
                         isEnPassant = false,
                         pawnPosition = Pair(-1, -1),  // Mark this as a regular move
-                        isUpgraded = ""
+                        isUpgraded = "",
+                        whiteLeftRookMoved = whiteLeftRookHasMoved,
+                        whiteRightRookMoved = whiteRightRookHasMoved,
+                        whiteKingMoved = whiteKingHasMoved,
+                        blackLeftRookMoved = blackLeftRookHasMoved,
+                        blackRightRookMoved = blackRightRookHasMoved,
+                        blackKingMoved = blackKingHasMoved,
                     )
 
 
@@ -475,7 +533,7 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
                 }
             }
         }
-        gameState.isCheckMate = true
+        gameState.isDraw = true
         gameState.winner = if(playerColor == "w") "White" else "Black"
         return true
     }
@@ -587,7 +645,13 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
             pawnPosition = Pair(-1, -1),
             tookOtherPiece = gameState.board[toRow][toCol],
             tookPosition = Pair(-1, -1),
-            isUpgraded = upgradedTo
+            isUpgraded = upgradedTo,
+            whiteLeftRookMoved = whiteLeftRookHasMoved,
+            whiteRightRookMoved = whiteRightRookHasMoved,
+            whiteKingMoved = whiteKingHasMoved,
+            blackLeftRookMoved = blackLeftRookHasMoved,
+            blackRightRookMoved = blackRightRookHasMoved,
+            blackKingMoved = blackKingHasMoved,
         )
         gameState.undoStack.add(gameState.previousMoves)
         val a = gameState.previousMoves.tookOtherPiece
@@ -674,12 +738,40 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
         dialog.show()
     }
 
+    fun checkStaleMate(playerColor: String): Boolean {
+        val opponentColor = if (playerColor == "w") "b" else "w"
+        var boardCopy = chessRules.copyBoard(gameState.board)
+
+        if(chessRules.isOnlyKingPresent()) {
+            gameState.isDraw = true
+            return true
+        }
+
+        if(chessRules.isKingInCheck(opponentColor, boardCopy))
+            return false
+
+        for(row in 0 until 8) {
+            for(col in 0 until 8) {
+                val piece = boardCopy[row][col]
+                if(piece.isNotEmpty() && piece[0].toString() == opponentColor) {
+                    val moves = generateMoves.possibleMoves(row, col)
+                    if(moves.isNotEmpty())
+                        return false
+                }
+            }
+        }
+        gameState.isDraw = true
+//        gameState.winner = if(playerColor == "w") "White" else "Black"
+        return true
+    }
+
     fun checkCheckMateAndSwitchTurn() {
         val currentPlayer = if(gameState.isWhiteTurn) "w" else "b"
         if(isCheckMate(currentPlayer)) {
             showWinnerDialog(context, gameState.winner)
         }
-        else {
+        else if(checkStaleMate(currentPlayer)){
+            showDrawDialog(context)
 //            Toast.makeText(context, "not checkmate", Toast.LENGTH_SHORT).show()
         }
         // Switch turns after a valid move
@@ -691,6 +783,24 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
 
         // Clear the selection
         selectedPiece = null
+    }
+
+    fun showDrawDialog(context: Context) {
+        val builder = AlertDialog.Builder(context)
+        builder.setTitle("Game Over")
+        builder.setMessage("Draw the game!")
+        builder.setPositiveButton("OK") { dialog, _ ->
+            dialog.dismiss()
+            // You can add code here to reset the game if needed
+        }
+        builder.setNegativeButton("Play Again") { dialog, _ ->
+            dialog.dismiss()
+            resetBoard()
+            // You can add code here to reset the game if needed
+        }
+        builder.setCancelable(false) // Prevents dialog from being closed without pressing OK
+        val dialog = builder.create()
+        dialog.show()
     }
 
 

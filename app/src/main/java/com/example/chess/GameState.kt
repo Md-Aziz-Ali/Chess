@@ -4,6 +4,7 @@ class GameState {
     // A simple 8x8 board initialized with pieces
     val board: Array<Array<String>> = Array(8) { Array(8) { "" } }
     var isCheckMate = false
+    var isDraw = false
     var winner = ""
 
     // Initialize the stacks for undo and redo operations

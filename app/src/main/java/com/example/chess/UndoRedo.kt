@@ -29,6 +29,13 @@ class UndoRedo(private val context: Context, var gameState: GameState) {
         var pawnPosition = move.pawnPosition
         var isUpgraded = move.isUpgraded
 
+        var whiteLeftRookMoved = move.whiteLeftRookMoved
+        var whiteRightRookMoved = move.whiteRightRookMoved
+        var whiteKingMoved = move.whiteKingMoved
+        var blackLeftRookMoved = move.blackLeftRookMoved
+        var blackRightRookMoved = move.blackRightRookMoved
+        var blackKingMoved = move.blackKingMoved
+
 
         if(isCastle) {
             gameState.board[startPosition.first][startPosition.second] = gameState.board[endPosition.first][endPosition.second]
@@ -53,6 +60,19 @@ class UndoRedo(private val context: Context, var gameState: GameState) {
                 gameState.board[startPosition.first][startPosition.second] = if(gameState.isWhiteTurn) " bP" else "wP"
             }
         }
+
+        if(whiteKingMoved)
+            gameState.whiteKingHasMoved = false
+        if(whiteLeftRookMoved)
+            gameState.whiteLeftRookHasMoved = false
+        if(whiteRightRookMoved)
+            gameState.whiteRightRookHasMoved = false
+        if(blackKingMoved)
+            gameState.blackKingHasMoved = false
+        if(blackLeftRookMoved)
+            gameState.blackLeftRookHasMoved = false
+        if(blackRightRookMoved)
+            gameState.blackRightRookHasMoved = false
 
         if(gameState.undoStack.isNotEmpty())
             gameState.previousMoves = gameState.undoStack.last()
@@ -94,6 +114,13 @@ class UndoRedo(private val context: Context, var gameState: GameState) {
         var pawnPosition = move.pawnPosition
         var isUpgraded = move.isUpgraded
 
+        var whiteLeftRookMoved = move.whiteLeftRookMoved
+        var whiteRightRookMoved = move.whiteRightRookMoved
+        var whiteKingMoved = move.whiteKingMoved
+        var blackLeftRookMoved = move.blackLeftRookMoved
+        var blackRightRookMoved = move.blackRightRookMoved
+        var blackKingMoved = move.blackKingMoved
+
         if(isCastle) {
             gameState.board[endPosition.first][endPosition.second] = gameState.board[startPosition.first][startPosition.second]
             gameState.board[startPosition.first][startPosition.second] = ""
@@ -117,6 +144,21 @@ class UndoRedo(private val context: Context, var gameState: GameState) {
                 gameState.board[endPosition.first][endPosition.second] = isUpgraded
             }
         }
+
+        if(whiteKingMoved)
+            gameState.whiteKingHasMoved = true
+        if(whiteLeftRookMoved)
+            gameState.whiteLeftRookHasMoved = true
+        if(whiteRightRookMoved)
+            gameState.whiteRightRookHasMoved = true
+        if(blackKingMoved)
+            gameState.blackKingHasMoved = true
+        if(blackLeftRookMoved)
+            gameState.blackLeftRookHasMoved = true
+        if(blackRightRookMoved)
+            gameState.blackRightRookHasMoved = true
+
+
 
         gameState.previousMoves = move
         gameState.switchTurn()
