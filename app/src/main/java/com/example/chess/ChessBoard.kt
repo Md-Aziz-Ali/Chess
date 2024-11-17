@@ -806,7 +806,7 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
 
 
     companion object {
-        private const val LIGHT_COLOR = 0xFFF0D9B5.toInt()
-        private const val DARK_COLOR = 0xFFB58863.toInt()
+        private const val LIGHT_COLOR = 0xFFEEEED2.toInt()
+        private const val DARK_COLOR = 0xFF769656.toInt()
     }
 }
