@@ -57,7 +57,7 @@ class UndoRedo(private val context: Context, var gameState: GameState) {
                 gameState.board[endPosition.first][endPosition.second] = tookOtherPiece
             }
             if(isUpgraded.isNotEmpty()) {
-                gameState.board[startPosition.first][startPosition.second] = if(gameState.isWhiteTurn) " bP" else "wP"
+                gameState.board[startPosition.first][startPosition.second] = if(gameState.isWhiteTurn) "bP" else "wP"
             }
         }
 
