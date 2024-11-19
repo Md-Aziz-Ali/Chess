@@ -1,9 +1,8 @@
 package com.example.chess
 
-import android.graphics.Color
 import android.os.Bundle
 import android.widget.GridLayout
-import android.widget.ImageView
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -24,9 +23,32 @@ class ChessActivity : AppCompatActivity() {
 
         // Find the GridLayout in your layout
         gridLayout = findViewById(R.id.chessBoard)
+        var defaultValue = 0
+        val time = intent.getIntExtra("time", defaultValue)
+
+//        var time = 0
+//
+//        if(timeGot == 1) {
+//            Toast.makeText(this, "${time}", Toast.LENGTH_SHORT).show()
+//            time = 1
+//        }
+//
+//        else if(timeGot == "3") {
+//            Toast.makeText(this, "${time}", Toast.LENGTH_SHORT).show()
+//            time = 3
+//        }
+//
+//        else if(timeGot == "10") {
+//            Toast.makeText(this, "${time}", Toast.LENGTH_SHORT).show()
+//            time = 10
+//        }
+//        else {
+//            Toast.makeText(this, "Nothing", Toast.LENGTH_SHORT).show()
+//        }
+
 
         // Create the ChessGame and start the game
-        chessGame = ChessGame(this)
+        chessGame = ChessGame(this, time)
         chessGame.startGame(gridLayout)
     }
 }

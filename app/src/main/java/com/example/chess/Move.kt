@@ -1,6 +1,7 @@
 package com.example.chess
 
 data class Move(
+    var count: Int,
     val piece: String,
     val startPosition: Pair<Int, Int>, // Starting position (row, col)
     val endPosition: Pair<Int, Int>,   // Ending position (row, col)

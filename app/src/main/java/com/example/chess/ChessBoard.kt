@@ -8,13 +8,15 @@ import android.widget.GridLayout
 import android.widget.ImageView
 import android.app.AlertDialog
 import android.content.ContentValues.TAG
+import android.os.CountDownTimer
 import android.util.Log
 import android.view.LayoutInflater
+import android.view.View
+import android.widget.TextView
 import android.widget.Toast
-import kotlinx.coroutines.currentCoroutineContext
-import kotlin.math.log
+import kotlin.math.abs
 
-class ChessBoard(private val context: Context, var gameState: GameState) {
+class ChessBoard(private val context: Context, var gameState: GameState, var time: Int) {
 
     var whiteKingHasMoved = false
     var blackKingHasMoved = false
@@ -34,12 +36,14 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
 
     lateinit var gridLayout: GridLayout
 
+    private var blackTimer: CountDownTimer? = null
+    private var whiteTimer: CountDownTimer? = null
+
 //    // Declare previousMoves as a mutable list of Move objects
-//    val previousMoes: MutableList<Move> = mutableListOf()
 
 
     // Array to keep track of highlighted squares
-    private val highlightedSquares = mutableListOf<ImageView>()
+//    private val highlightedSquares = mutableListOf<ImageView>()
 
     var selectedPiece: Pair<Int, Int>? = null  // Track the selected piece's position
 
@@ -47,16 +51,25 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
 
     var currSourceSquare: ImageView? = null
 
-    val HIGHLIGHT_SOURCE = Color.parseColor("#FFD700")  // Gold
-    val HIGHLIGHT_DESTINATION = Color.parseColor("#00FF00")  // Green
+    val HIGHLIGHT_SOURCE = Color.parseColor("#F6F669")  // Gold
+    val HIGHLIGHT_DESTINATION = Color.parseColor("#F6F669")  // Green
+
+    private var whiteTimerText: TextView? = null
+    private var blackTimerText: TextView? = null
+
+    init {
+        // Cast context to Activity to access findViewById
+        whiteTimerText = (context as Activity).findViewById(R.id.whiteTimerText)
+        blackTimerText = (context as Activity).findViewById(R.id.blackTimerText)
+    }
 
     fun updateUndoRedoButtons(canUndo: Boolean, canRedo: Boolean) {
-        undoImage?.let {
+        undoImage.let {
             it.isEnabled = canUndo
             it.alpha = if (canUndo) 1.0f else 0.5f
         }
 
-        redoImage?.let {
+        redoImage.let {
             it.isEnabled = canRedo
             it.alpha = if (canRedo) 1.0f else 0.5f
         }
@@ -64,7 +77,23 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
 
     fun startTheGame(gridLayout: GridLayout) {
         this.gridLayout = gridLayout
+        gameState.whiteTimeRemaining = gameState.whiteTimeRemaining * time
+        gameState.blackTimeRemaining = gameState.blackTimeRemaining * time
+
+        if(time == 0) {
+            gameState.noTimeLimit = true
+            // To hide the whiteTimerText
+            whiteTimerText?.visibility = View.GONE
+
+// To hide the blackTimerText
+            blackTimerText?.visibility = View.GONE
+        }
+
         setupBoard(gridLayout)
+        if(gameState.noTimeLimit == false) {
+            updateTimerUI(whiteTimerText, gameState.whiteTimeRemaining / 1000)
+            updateTimerUI(blackTimerText, gameState.blackTimeRemaining / 1000)
+        }
     }
 
     fun setupBoard(gridLayout: GridLayout) {
@@ -104,6 +133,8 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
                 }
             }
         }
+        if(gameState.noTimeLimit == false)
+            startWhiteTimer()
     }
 
     fun onSquareClicked(row: Int, col: Int, square: ImageView, gridLayout: GridLayout) {
@@ -200,22 +231,6 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
         }
     }
 
-    // Function to highlight the source and destination squares
-    fun highlightMoves1(gridLayout: GridLayout, row1: Int, col1: Int, row2: Int, col2: Int) {
-        highlight.clear()
-        highlight.add(row1)
-        highlight.add(col1)
-        highlight.add(row2)
-        highlight.add(col2)
-        val sourceSquare = gridLayout.getChildAt(row1 * 8 + col1) as ImageView
-        val destinationSquare = gridLayout.getChildAt(row2 * 8 + col2) as ImageView
-
-        // Highlight the source square
-        sourceSquare.setBackgroundColor(HIGHLIGHT_SOURCE)  // HIGHLIGHT_SOURCE is a color for highlighting the source
-        // Highlight the destination square
-        destinationSquare.setBackgroundColor(HIGHLIGHT_DESTINATION)  // HIGHLIGHT_DESTINATION is a color for destination
-    }
-
     fun highlightMoves() {
         if(gameState.zeroMoves)
             return
@@ -235,28 +250,10 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
 
     }
 
-    // Function to remove the highlight from the previously highlighted squares
-    fun removeHighlightedMoves1(gridLayout: GridLayout) {
-        if (highlight.isNotEmpty()) {
-            // Assuming highlight array has 4 values: [sourceRow, sourceCol, destinationRow, destinationCol]
-            val sourceRow = highlight[0]
-            val sourceCol = highlight[1]
-            val destinationRow = highlight[2]
-            val destinationCol = highlight[3]
-
-            // Get the source and destination squares from GridLayout
-            val sourceSquare = gridLayout.getChildAt(sourceRow * 8 + sourceCol) as ImageView
-            val destinationSquare = gridLayout.getChildAt(destinationRow * 8 + destinationCol) as ImageView
-
-            // Reset the background color to default (alternating light/dark color)
-            sourceSquare.setBackgroundColor(if ((sourceRow + sourceCol) % 2 == 0) LIGHT_COLOR else DARK_COLOR)
-            destinationSquare.setBackgroundColor(if ((destinationRow + destinationCol) % 2 == 0) LIGHT_COLOR else DARK_COLOR)
-        }
-    }
-
     fun makeMove(gridLayout: GridLayout, row: Int, col: Int, selectedRow: Int, selectedCol: Int) {
 
         var previousMovesCopy = Move(
+            count = 0,
             piece = "",
             startPosition = Pair(-1, -1),
             endPosition = Pair(-1, -1),
@@ -334,17 +331,17 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
         if(blackRightRookHasMoved)
             gameState.blackRightRookHasMoved = true
 
-        if(movedPiece == "bR") {
-            Toast.makeText(context, "${gameState.blackLeftRookHasMoved} ${gameState.blackRightRookHasMoved}", Toast.LENGTH_SHORT).show()
-        }
-        if(movedPiece == "wR") {
-            Toast.makeText(context, "${gameState.whiteLeftRookHasMoved} ${gameState.whiteRightRookHasMoved}", Toast.LENGTH_SHORT).show()
-        }
+//        if(movedPiece == "bR") {
+//            Toast.makeText(context, "${gameState.blackLeftRookHasMoved} ${gameState.blackRightRookHasMoved}", Toast.LENGTH_SHORT).show()
+//        }
+//        if(movedPiece == "wR") {
+//            Toast.makeText(context, "${gameState.whiteLeftRookHasMoved} ${gameState.whiteRightRookHasMoved}", Toast.LENGTH_SHORT).show()
+//        }
 
 
 
         // Check if the move is a castling attempt
-        if (gameState.board[selectedRow][selectedCol].endsWith("K") && Math.abs(col - selectedCol) == 2) {
+        if (gameState.board[selectedRow][selectedCol].endsWith("K") && abs(col - selectedCol) == 2) {
             // Call the castling function if the move meets castling conditions
             performCastling(selectedRow, selectedCol, col)
 
@@ -352,10 +349,11 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
             val kingRow = selectedRow
             val kingCol = selectedCol
             val destinationCol = col
-            val rookCol = if (destinationCol > kingCol) 7 else 0 // 7 for kingside, 0 for queenside
+            val rookCol = if (destinationCol > kingCol) 7 else 0 // 7 for king side, 0 for queen side
             val newRookCol = if (destinationCol > kingCol) destinationCol - 1 else destinationCol + 1
             gameState.previousMoves =
                 Move(
+                    count = if(gameState.zeroMoves) 0 else gameState.previousMoves.count + 1,
                     piece = gameState.board[row][col],
                     startPosition = Pair(selectedRow, selectedCol),
                     endPosition = Pair(selectedRow, col),
@@ -374,22 +372,6 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
                     blackRightRookMoved = blackRightRookHasMoved,
                     blackKingMoved = blackKingHasMoved,
                 )
-
-
-//            updateGridLayout(gridLayout, selectedRow, selectedCol, selectedRow, col)
-
-            // Rook's move for castling
-//            val rookCol = if (col > selectedCol) 7 else 0
-//            val newRookCol = if (col > selectedCol) col - 1 else col + 1
-//            gameState.previousMoves =
-//                Move(
-//                    piece = gameState.board[selectedRow][newRookCol],
-//                    startPosition = Pair(selectedRow, rookCol),
-//                    endPosition = Pair(selectedRow, newRookCol),
-//                    isCastle = true, // Mark this as a castling move
-//                    tookOtherPiece = "",
-//                    tookPosition = Pair(-1,-1)
-//                )
 
             gameState.undoStack.add(gameState.previousMoves)
 //            ToastPrint()
@@ -422,6 +404,7 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
             // add the move to the array
             gameState.previousMoves =
                 Move(
+                    count = if(gameState.zeroMoves) 0 else gameState.previousMoves.count + 1,
                     piece = gameState.board[row][col],
                     startPosition = Pair(selectedRow, selectedCol),
                     endPosition = Pair(row, col),
@@ -467,6 +450,7 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
                 // Add the regular move to the array
                 gameState.previousMoves =
                     Move(
+                        count = if(gameState.zeroMoves) 0 else gameState.previousMoves.count + 1,
                         piece = gameState.board[selectedRow][selectedCol],
                         startPosition = Pair(selectedRow, selectedCol),
                         endPosition = Pair(row, col),
@@ -503,16 +487,6 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
 //            updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
 //            highlightMoves(gridLayout, selectedRow, selectedCol, row, col)
         }
-    }
-
-    fun Toast1Print() {
-        var a = gameState.undoStack.last()
-        val startRow = a.startPosition.first
-        val startCol = a.startPosition.second
-
-        val endRow = a.endPosition.first
-        val endCol = a.endPosition.second
-        Toast.makeText(context, "${startRow} ${startCol} ${endRow} ${endCol}", Toast.LENGTH_SHORT).show()
     }
 
     // Function to check checkmate
@@ -580,7 +554,7 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
 
                 // Set the piece image if present, otherwise clear the square
                 if (piece.isNotEmpty()) {
-                    val drawable = gameState.getPieceDrawable(piece) // This method retrieves drawable for piece type
+//                    val drawable = gameState.getPieceDrawable(piece) // This method retrieves drawable for piece type
                     square.setImageResource(gameState.getPieceDrawable(piece))
                 } else {
                     square.setImageDrawable(null) // Empty square if no piece
@@ -606,7 +580,7 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
 
 
     fun performCastling(kingRow: Int, kingCol: Int, destinationCol: Int) {
-        val rookCol = if (destinationCol > kingCol) 7 else 0 // 7 for kingside, 0 for queenside
+        val rookCol = if (destinationCol > kingCol) 7 else 0 // 7 for king side, 0 for queen side
         val newRookCol = if (destinationCol > kingCol) destinationCol - 1 else destinationCol + 1
 
         // Move the king
@@ -618,23 +592,9 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
         gameState.board[kingRow][rookCol] = ""
     }
 
-    fun updateGridLayout1(gridLayout: GridLayout, fromRow: Int, fromCol: Int, toRow: Int, toCol: Int) {
-        // Get the ImageViews for the source and destination squares
-        val sourceSquare = gridLayout.getChildAt(fromRow * 8 + fromCol) as ImageView
-        val destinationSquare = gridLayout.getChildAt(toRow * 8 + toCol) as ImageView
-
-        // Clear the source square's image (empty the square)
-        sourceSquare.setImageDrawable(null)
-//        resetBoard()
-
-        // Set the image for the destination square
-//        destinationSquare.setImageDrawable(null)
-        destinationSquare.setImageResource(gameState.getPieceDrawable(gameState.board[toRow][toCol]))
-//        resetBoard()
-    }
-
     fun saveTheMoveForUpgradation(fromRow: Int, fromCol: Int, toRow: Int, toCol: Int, upgradedTo: String) {
         gameState.previousMoves = Move(
+            count = if(gameState.zeroMoves) 0 else gameState.previousMoves.count + 1,
             piece = gameState.board[fromRow][fromCol],
             startPosition = Pair(fromRow, fromCol),
             endPosition = Pair(toRow, toCol),
@@ -654,8 +614,8 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
             blackKingMoved = blackKingHasMoved,
         )
         gameState.undoStack.add(gameState.previousMoves)
-        val a = gameState.previousMoves.tookOtherPiece
-        Toast.makeText(context, "${a}", Toast.LENGTH_SHORT).show()
+//        val a = gameState.previousMoves.tookOtherPiece
+//        Toast.makeText(context, "${a}", Toast.LENGTH_SHORT).show()
     }
 
     fun showImagePopup(fromRow: Int, fromCol: Int, row: Int, col: Int) {
@@ -768,17 +728,30 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
     fun checkCheckMateAndSwitchTurn() {
         val currentPlayer = if(gameState.isWhiteTurn) "w" else "b"
         if(isCheckMate(currentPlayer)) {
+            blackTimer?.cancel()
+            whiteTimer?.cancel()
             showWinnerDialog(context, gameState.winner)
         }
         else if(checkStaleMate(currentPlayer)){
             showDrawDialog(context)
 //            Toast.makeText(context, "not checkmate", Toast.LENGTH_SHORT).show()
         }
+
+        if(gameState.noTimeLimit == false) {
+            if (gameState.isWhiteTurn == false) {
+                startWhiteTimer()
+                blackTimer?.cancel()
+            } else {
+                startBlackTimer()
+                whiteTimer?.cancel()
+            }
+        }
+
         // Switch turns after a valid move
         gameState.switchTurn()
 
         // printing the board
-        print()
+//        print()
         gameState.zeroMoves = false
 
         // Clear the selection
@@ -803,7 +776,45 @@ class ChessBoard(private val context: Context, var gameState: GameState) {
         dialog.show()
     }
 
+    private fun startWhiteTimer() {
+        whiteTimer?.cancel() // Cancel any existing timer
+        whiteTimer = object : CountDownTimer(gameState.whiteTimeRemaining, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                gameState.whiteTimeRemaining = millisUntilFinished
+                updateTimerUI(whiteTimerText, millisUntilFinished)
+            }
 
+            override fun onFinish() {
+                // White's time is up
+                removePossibleMoves(gridLayout)
+                gameState.winner = "Black"
+                showWinnerDialog(context, gameState.winner)
+            }
+        }.start()
+    }
+
+    private fun startBlackTimer() {
+        blackTimer?.cancel() // Cancel any existing timer
+        blackTimer = object : CountDownTimer(gameState.blackTimeRemaining, 1000) {
+            override fun onTick(millisUntilFinished: Long) {
+                gameState.blackTimeRemaining = millisUntilFinished
+                updateTimerUI(blackTimerText, millisUntilFinished)
+            }
+
+            override fun onFinish() {
+                // Black's time is up
+//                showGameOver("White wins! Black ran out of time.")
+                removePossibleMoves(gridLayout)
+                gameState.winner = "White"
+                showWinnerDialog(context, gameState.winner)
+            }
+        }.start()
+    }
+
+    private fun updateTimerUI(timerText: TextView?, millisUntilFinished: Long) {
+        val seconds = millisUntilFinished / 1000
+        timerText?.text = String.format("%d:%02d", seconds / 60, seconds % 60)
+    }
 
     companion object {
         private const val LIGHT_COLOR = 0xFFEEEED2.toInt()

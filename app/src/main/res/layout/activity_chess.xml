@@ -8,14 +8,53 @@
     android:background="#1C1C1C"
     tools:context=".ChessActivity">
 
+    <TextView
+        android:id="@+id/whiteTimerText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        android:layout_marginEnd="28dp"
+        android:background="@drawable/rounded_background"
+        android:text="10:00"
+        android:paddingStart="10dp"
+        android:paddingTop="5dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="5dp"
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        app:layout_constraintBottom_toBottomOf="@+id/player2Name"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/player2Name"
+        app:layout_constraintVertical_bias="0.0" />
+
+    <TextView
+        android:id="@+id/blackTimerText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:layout_marginEnd="28dp"
+        android:background="@drawable/rounded_background"
+        android:paddingStart="10dp"
+        android:paddingTop="5dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="5dp"
+        android:text="10:00"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        app:layout_constraintBottom_toBottomOf="@+id/player1Name"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/player1Name"
+        app:layout_constraintVertical_bias="0.0" />
+
     <ImageView
         android:id="@+id/player1Image"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
+        android:layout_width="75dp"
+        android:layout_height="75dp"
         android:layout_marginStart="24dp"
         android:layout_marginTop="80dp"
+        android:background="#1C1C1C"
         android:contentDescription="Player 1 Image"
-        android:src="@drawable/person"
+        android:src="@drawable/personc"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -25,6 +64,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="36dp"
         android:text="Player 1"
+        android:textColor="#FFFFFF"
         app:layout_constraintBottom_toBottomOf="@+id/player1Image"
         app:layout_constraintStart_toEndOf="@+id/player1Image"
         app:layout_constraintTop_toTopOf="@+id/player1Image"
@@ -44,12 +84,12 @@
 
     <ImageView
         android:id="@+id/player2Image"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
+        android:layout_width="75dp"
+        android:layout_height="75dp"
         android:layout_marginStart="24dp"
         android:layout_marginBottom="68dp"
         android:contentDescription="Player 2 Image"
-        android:src="@drawable/person"
+        android:src="@drawable/personc"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -58,7 +98,9 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
+        android:shadowColor="#FFFFFFFF"
         android:text="Player 2"
+        android:textColor="#FFFFFF"
         app:layout_constraintBottom_toBottomOf="@+id/player2Image"
         app:layout_constraintStart_toEndOf="@+id/player2Image"
         app:layout_constraintTop_toTopOf="@+id/player2Image"

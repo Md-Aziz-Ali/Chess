@@ -1,11 +1,18 @@
 package com.example.chess
 
+import android.os.CountDownTimer
+
 class GameState {
     // A simple 8x8 board initialized with pieces
     val board: Array<Array<String>> = Array(8) { Array(8) { "" } }
     var isCheckMate = false
     var isDraw = false
     var winner = ""
+
+    var whiteTimeRemaining: Long = 60000L // 1 minute in milliseconds
+    var blackTimeRemaining: Long = 60000L// 1 minute in milliseconds
+    var noTimeLimit = false
+
 
     // Initialize the stacks for undo and redo operations
 //    var undoStack = mutableListOf<MutableList<Move>>()
