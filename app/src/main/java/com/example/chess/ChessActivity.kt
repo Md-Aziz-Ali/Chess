@@ -25,30 +25,14 @@ class ChessActivity : AppCompatActivity() {
         gridLayout = findViewById(R.id.chessBoard)
         var defaultValue = 0
         val time = intent.getIntExtra("time", defaultValue)
+        var isOnline = intent.getBooleanExtra("isOnline", false)
+        var name = intent.getStringExtra("name")
+        var receiverId = intent.getStringExtra("receiverId")
 
-//        var time = 0
-//
-//        if(timeGot == 1) {
-//            Toast.makeText(this, "${time}", Toast.LENGTH_SHORT).show()
-//            time = 1
-//        }
-//
-//        else if(timeGot == "3") {
-//            Toast.makeText(this, "${time}", Toast.LENGTH_SHORT).show()
-//            time = 3
-//        }
-//
-//        else if(timeGot == "10") {
-//            Toast.makeText(this, "${time}", Toast.LENGTH_SHORT).show()
-//            time = 10
-//        }
-//        else {
-//            Toast.makeText(this, "Nothing", Toast.LENGTH_SHORT).show()
-//        }
 
 
         // Create the ChessGame and start the game
-        chessGame = ChessGame(this, time)
+        chessGame = ChessGame(this, time, isOnline, name.toString(), receiverId.toString())
         chessGame.startGame(gridLayout)
     }
 }

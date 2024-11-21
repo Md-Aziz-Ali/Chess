@@ -8,15 +8,28 @@ import android.widget.GridLayout
 import android.widget.ImageView
 import android.app.AlertDialog
 import android.content.ContentValues.TAG
+import android.content.Intent
 import android.os.CountDownTimer
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
+import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.auth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.ValueEventListener
+import com.google.firebase.database.database
 import kotlin.math.abs
 
-class ChessOnlineBoard(private val context: Context, var gameState: GameState, var time: Int) {
+class ChessOnlineBoard(private val context: Context, var gameState: GameState,
+                       var name: String, var time: Int, var receiverId: String) {
+    var prevCount = 0
 
     var whiteKingHasMoved = false
     var blackKingHasMoved = false
@@ -24,6 +37,12 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState, v
     var whiteRightRookHasMoved = false
     var blackLeftRookHasMoved = false
     var blackRightRookHasMoved = false
+
+    var senderId = ""
+    var room = ""
+
+    private lateinit var database: DatabaseReference
+    private lateinit var auth: FirebaseAuth
 
     val undoRedo = UndoRedo(context, gameState)
     private val undoImage: ImageView = (context as Activity).findViewById(R.id.imageView)
@@ -39,11 +58,6 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState, v
     private var blackTimer: CountDownTimer? = null
     private var whiteTimer: CountDownTimer? = null
 
-//    // Declare previousMoves as a mutable list of Move objects
-
-
-    // Array to keep track of highlighted squares
-//    private val highlightedSquares = mutableListOf<ImageView>()
 
     var selectedPiece: Pair<Int, Int>? = null  // Track the selected piece's position
 
@@ -76,6 +90,25 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState, v
     }
 
     fun startTheGame(gridLayout: GridLayout) {
+        database = Firebase.database.reference
+        auth = Firebase.auth
+
+        if(name.endsWith('1')) {
+            senderId = auth.currentUser?.uid.toString()
+            room = senderId + receiverId
+            gameState.youAre = 'w'
+        }
+        else {
+            senderId = receiverId
+            receiverId = auth.currentUser?.uid.toString()
+            room = senderId + receiverId
+            gameState.youAre = 'b'
+        }
+//        Toast.makeText(context, "${room}", Toast.LENGTH_LONG).show()
+//        Log.w(TAG, "${room}")
+
+//        profileURL = intent.getStringExtra("profileURL")
+
         this.gridLayout = gridLayout
         gameState.whiteTimeRemaining = gameState.whiteTimeRemaining * time
         gameState.blackTimeRemaining = gameState.blackTimeRemaining * time
@@ -133,8 +166,52 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState, v
                 }
             }
         }
+//        if (gameState.youAre != 'w') {
+//            gridLayout.rotation = 180f
+//        } else {
+//            gridLayout.rotation = 0f
+//        }
+
         if(gameState.noTimeLimit == false)
             startWhiteTimer()
+//        makeOneMove()
+
+//        Handler(Looper.getMainLooper()).postDelayed({
+//            checkOnlineMove()
+////            val intent = Intent(this, SignInActivity::class.java)
+////            startActivity(intent)
+////            finish()
+//        }, 1000)
+        checkOnlineMove()
+
+    }
+
+    fun checkOnlineMove() {
+        database.child("game").child(room)
+            .addValueEventListener(object : ValueEventListener {
+                override fun onDataChange(dataSnapshot: DataSnapshot) {
+                    val mess = dataSnapshot.getValue(Move1::class.java)
+                    if (mess != null) {
+                        val selectedRow = mess.startPosition.first
+                        val selectedCol = mess.startPosition.second
+
+                        val row = mess.endPosition.first
+                        val col = mess.endPosition.second
+                        val count = mess.count
+                        val upgradedTo = mess.upgradedTo
+//                        Toast.makeText(context, "${selectedRow} ${selectedCol} ${row} ${col}", Toast.LENGTH_SHORT).show()
+                        if(count == prevCount + 1) {
+                                makeMove(gridLayout, row, col, selectedRow, selectedCol, upgradedTo)
+                                prevCount++
+                            }
+
+                        }
+                    }
+
+                override fun onCancelled(error: DatabaseError) {
+                    TODO("Not yet implemented")
+                }
+            })
     }
 
     fun onSquareClicked(row: Int, col: Int, square: ImageView, gridLayout: GridLayout) {
@@ -151,7 +228,7 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState, v
         if (selectedPiece == null) {
             // Select the piece at this position if it's not empty and it's the correct turn
             val piece = gameState.board[row][col]
-            if (piece.isNotEmpty() && gameState.isValidTurn(piece)) {
+            if (piece.isNotEmpty() && gameState.isValidTurn(piece) && piece[0] == gameState.youAre) {
                 selectedPiece = Pair(row, col)
 
                 // Highlight the selected (source) square
@@ -176,7 +253,7 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState, v
             currSourceSquare?.setBackgroundColor(if ((selectedRow + selectedCol) % 2 == 0) LIGHT_COLOR else DARK_COLOR)
 
             // Make the move
-            makeMove(gridLayout, row, col, selectedRow, selectedCol)
+            makeMove(gridLayout, row, col, selectedRow, selectedCol, "")
 
 
             removePossibleMoves(gridLayout)
@@ -250,7 +327,7 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState, v
 
     }
 
-    fun makeMove(gridLayout: GridLayout, row: Int, col: Int, selectedRow: Int, selectedCol: Int) {
+    fun makeMove(gridLayout: GridLayout, row: Int, col: Int, selectedRow: Int, selectedCol: Int, upgradedTo: String) {
 
         var previousMovesCopy = Move(
             count = 0,
@@ -275,8 +352,6 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState, v
         if(gameState.zeroMoves == false)
             previousMovesCopy = gameState.previousMoves
         // Clear previous moves before adding the new one
-//        gameState.previousMoves.clear()
-//        removeHighlightedMoves(gridLayout)
 
         // clear the redo stack
         gameState.redoStack.clear()
@@ -331,15 +406,6 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState, v
         if(blackRightRookHasMoved)
             gameState.blackRightRookHasMoved = true
 
-//        if(movedPiece == "bR") {
-//            Toast.makeText(context, "${gameState.blackLeftRookHasMoved} ${gameState.blackRightRookHasMoved}", Toast.LENGTH_SHORT).show()
-//        }
-//        if(movedPiece == "wR") {
-//            Toast.makeText(context, "${gameState.whiteLeftRookHasMoved} ${gameState.whiteRightRookHasMoved}", Toast.LENGTH_SHORT).show()
-//        }
-
-
-
         // Check if the move is a castling attempt
         if (gameState.board[selectedRow][selectedCol].endsWith("K") && abs(col - selectedCol) == 2) {
             // Call the castling function if the move meets castling conditions
@@ -372,16 +438,26 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState, v
                     blackRightRookMoved = blackRightRookHasMoved,
                     blackKingMoved = blackKingHasMoved,
                 )
+            if((gameState.isWhiteTurn == (gameState.youAre == 'w'))) {
+                val move1 = Move1(
+                    upgradedTo = upgradedTo,
+                    count = prevCount + 1,
+                    isWhiteTurn = gameState.isWhiteTurn,
+                    startPosition = Position(selectedRow, selectedCol),
+                    endPosition = Position(row, col)
+                )
+                prevCount++
+                database.child("game").child(room)
+                    .setValue(move1).addOnSuccessListener {
+                    }
+            }
 
             gameState.undoStack.add(gameState.previousMoves)
-//            ToastPrint()
 
-//            updateGridLayout(gridLayout, selectedRow, rookCol, selectedRow, newRookCol)
             setUptTheBoardAgain()
-//            highlightMoves(gridLayout, selectedRow, selectedCol,selectedRow, rookCol)
             highlightMoves()
             // Switch turns after a valid move
-//            gameState.switchTurn()
+
             checkCheckMateAndSwitchTurn()
             // Clear the selection
             selectedPiece = null
@@ -423,28 +499,39 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState, v
                     blackRightRookMoved = blackRightRookHasMoved,
                     blackKingMoved = blackKingHasMoved,
                 )
+            if((gameState.isWhiteTurn == (gameState.youAre == 'w'))) {
+                val move1 = Move1(
+                    upgradedTo = upgradedTo,
+                    count = prevCount + 1,
+                    isWhiteTurn = gameState.isWhiteTurn,
+                    startPosition = Position(selectedRow, selectedCol),
+                    endPosition = Position(row, col)
+                )
+                prevCount++
+                database.child("game").child(room)
+                    .setValue(move1).addOnSuccessListener {
+                    }
+            }
             gameState.board[removeRowPiece][removeColPiece] = ""
 
 
             gameState.undoStack.add(gameState.previousMoves)
-//            ToastPrint()
 
-//            updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
             setUptTheBoardAgain()
             highlightMoves()
-            // Switch turns after a valid move
-//            gameState.switchTurn()
+
             checkCheckMateAndSwitchTurn()
             // Clear the selection
             selectedPiece = null
             gameState.zeroMoves = false
         }
         else {
-            // Regular move
+            // Pawn upgradation move
             if(gameState.board[selectedRow][selectedCol].endsWith("P") && (row == 0 || row == 7)) {
-                showImagePopup(selectedRow, selectedCol, row, col)
-//                updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
-//                resetBoard()
+                if(gameState.isWhiteTurn != (gameState.youAre == 'w'))
+                    saveTheMoveForUpgradation(selectedRow, selectedCol, row, col, upgradedTo)
+                else
+                    showImagePopup(selectedRow, selectedCol, row, col)
             }
             else {
                 // Add the regular move to the array
@@ -469,23 +556,30 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState, v
                         blackRightRookMoved = blackRightRookHasMoved,
                         blackKingMoved = blackKingHasMoved,
                     )
+                if((gameState.isWhiteTurn == (gameState.youAre == 'w'))) {
+                    val move1 = Move1(
+                        upgradedTo = upgradedTo,
+                        count = prevCount + 1,
+                        isWhiteTurn = gameState.isWhiteTurn,
+                        startPosition = Position(selectedRow, selectedCol),
+                        endPosition = Position(row, col)
+                    )
+                    prevCount++
+                    database.child("game").child(room)
+                        .setValue(move1).addOnSuccessListener {
+                        }
+                }
 
 
                 gameState.undoStack.add(gameState.previousMoves)
                 gameState.zeroMoves = false
 
-//                ToastPrint()
-
                 gameState.board[row][col] = gameState.board[selectedRow][selectedCol]
                 gameState.board[selectedRow][selectedCol] = ""
-//                updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
                 setUptTheBoardAgain()
                 highlightMoves()
                 checkCheckMateAndSwitchTurn()
             }
-
-//            updateGridLayout(gridLayout, selectedRow, selectedCol, row, col)
-//            highlightMoves(gridLayout, selectedRow, selectedCol, row, col)
         }
     }
 
@@ -577,8 +671,6 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState, v
         setUptTheBoardAgain()
     }
 
-
-
     fun performCastling(kingRow: Int, kingCol: Int, destinationCol: Int) {
         val rookCol = if (destinationCol > kingCol) 7 else 0 // 7 for king side, 0 for queen side
         val newRookCol = if (destinationCol > kingCol) destinationCol - 1 else destinationCol + 1
@@ -613,7 +705,25 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState, v
             blackRightRookMoved = blackRightRookHasMoved,
             blackKingMoved = blackKingHasMoved,
         )
+        if((gameState.isWhiteTurn == (gameState.youAre == 'w'))) {
+                val move1 = Move1(
+                    upgradedTo = upgradedTo,
+                    count = prevCount + 1,
+                    isWhiteTurn = gameState.isWhiteTurn,
+                    startPosition = Position(fromRow, fromCol),
+                    endPosition = Position(toRow, toCol)
+                )
+            prevCount++
+                database.child("game").child(room)
+                    .setValue(move1).addOnSuccessListener {
+                    }
+            }
         gameState.undoStack.add(gameState.previousMoves)
+        gameState.board[toRow][toCol] = upgradedTo
+        gameState.board[fromRow][fromCol] = ""
+        setUptTheBoardAgain()
+        highlightMoves()
+        checkCheckMateAndSwitchTurn()
 //        val a = gameState.previousMoves.tookOtherPiece
 //        Toast.makeText(context, "${a}", Toast.LENGTH_SHORT).show()
     }
@@ -647,54 +757,28 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState, v
             // Perform action for Image 1
             var upgradedTo = if(gameState.isWhiteTurn) "wR" else "bR"
             saveTheMoveForUpgradation(fromRow, fromCol, row, col, upgradedTo)
-            gameState.board[row][col] = if(gameState.isWhiteTurn) "wR" else "bR"
-            gameState.board[fromRow][fromCol] = ""
-//            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
-            setUptTheBoardAgain()
-            highlightMoves()
-            checkCheckMateAndSwitchTurn()
             dialog.dismiss() // Close the dialog
         }
         image2.setOnClickListener {
             // Perform action for Image 2
             var upgradedTo = if(gameState.isWhiteTurn) "wB" else "bB"
             saveTheMoveForUpgradation(fromRow, fromCol, row, col, upgradedTo)
-            gameState.board[row][col] = if(gameState.isWhiteTurn) "wB" else "bB"
-            gameState.board[fromRow][fromCol] = ""
-//            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
-            setUptTheBoardAgain()
-            highlightMoves()
-            checkCheckMateAndSwitchTurn()
             dialog.dismiss() // Close the dialog
         }
         image3.setOnClickListener {
             // Perform action for Image 3
             var upgradedTo = if(gameState.isWhiteTurn) "wN" else "bN"
             saveTheMoveForUpgradation(fromRow, fromCol, row, col, upgradedTo)
-            gameState.board[row][col] = if(gameState.isWhiteTurn) "wN" else "bN"
-            gameState.board[fromRow][fromCol] = ""
-//            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
-            setUptTheBoardAgain()
-            highlightMoves()
-            checkCheckMateAndSwitchTurn()
             dialog.dismiss() // Close the dialog
         }
         image4.setOnClickListener {
             // Perform action for Image 3
             var upgradedTo = if(gameState.isWhiteTurn) "wQ" else "bQ"
             saveTheMoveForUpgradation(fromRow, fromCol, row, col, upgradedTo)
-            gameState.board[row][col] = if(gameState.isWhiteTurn) "wQ" else "bQ"
-            gameState.board[fromRow][fromCol] = ""
-//            updateGridLayout(gridLayout, fromRow, fromCol, row, col)
-            setUptTheBoardAgain()
-            highlightMoves()
-            checkCheckMateAndSwitchTurn()
             dialog.dismiss() // Close the dialog
         }
-//        updateGridLayout(gridLayout, fromRow, fromCol, row, col)
 
         // Show the dialog
-//        resetBoard()
         dialog.show()
     }
 

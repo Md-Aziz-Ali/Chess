@@ -60,6 +60,7 @@ class UserAdapter(val context: Context, private val dataSet: ArrayList<User>) :
             intent.putExtra("name", currentUser.name)
             intent.putExtra("receiverId", currentUser.uid)
             intent.putExtra("profileURL", currentUser.profileImageUrl.toString())
+            intent.putExtra("isOnline", true)
             context.startActivity(intent)
         }
     }

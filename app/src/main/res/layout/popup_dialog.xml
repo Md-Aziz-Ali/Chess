@@ -7,28 +7,28 @@
 
     <ImageView
         android:id="@+id/image1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:layout_margin="8dp"
         android:src="@drawable/rook_black" />
 
     <ImageView
         android:id="@+id/image2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:layout_margin="8dp"
         android:src="@drawable/bishop_black" />
 
     <ImageView
         android:id="@+id/image3"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:layout_margin="8dp"
         android:src="@drawable/knight_black" />
     <ImageView
         android:id="@+id/image4"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         android:layout_margin="8dp"
         android:src="@drawable/queen_black" />
 

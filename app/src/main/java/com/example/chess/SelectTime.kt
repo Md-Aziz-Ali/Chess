@@ -22,6 +22,10 @@ class SelectTime : AppCompatActivity() {
             insets
         }
 
+        var isOnline = intent.getBooleanExtra("isOnline", false)
+        var name = intent.getStringExtra("name")
+        var receiverId = intent.getStringExtra("receiverId")
+
         binding.imageView7.setOnClickListener {
             val intent = Intent(this, MainActivity::class.java)
             startActivity(intent)
@@ -31,6 +35,9 @@ class SelectTime : AppCompatActivity() {
         binding.bulletButton.setOnClickListener {
             val intent = Intent(this, ChessActivity::class.java)
             intent.putExtra("time", 1)
+            intent.putExtra("isOnline", isOnline)
+            intent.putExtra("name", name)
+            intent.putExtra("receiverId", receiverId)
             startActivity(intent)
             finish()
         }
@@ -38,6 +45,9 @@ class SelectTime : AppCompatActivity() {
         binding.blitzButton.setOnClickListener {
             val intent = Intent(this, ChessActivity::class.java)
             intent.putExtra("time", 3)
+            intent.putExtra("isOnline", isOnline)
+            intent.putExtra("name", name)
+            intent.putExtra("receiverId", receiverId)
             startActivity(intent)
             finish()
         }
@@ -45,6 +55,9 @@ class SelectTime : AppCompatActivity() {
         binding.rapidButton.setOnClickListener {
             val intent = Intent(this, ChessActivity::class.java)
             intent.putExtra("time", 10)
+            intent.putExtra("isOnline", isOnline)
+            intent.putExtra("name", name)
+            intent.putExtra("receiverId", receiverId)
             startActivity(intent)
             finish()
         }
@@ -52,6 +65,9 @@ class SelectTime : AppCompatActivity() {
         binding.notimelimit.setOnClickListener {
             val intent = Intent(this, ChessActivity::class.java)
             intent.putExtra("time", 0)
+            intent.putExtra("isOnline", isOnline)
+            intent.putExtra("name", name)
+            intent.putExtra("receiverId", receiverId)
             startActivity(intent)
             finish()
         }
@@ -59,6 +75,9 @@ class SelectTime : AppCompatActivity() {
         binding.imageView23.setOnClickListener {
             val intent = Intent(this, ChessActivity::class.java)
             intent.putExtra("time", 30)
+            intent.putExtra("isOnline", isOnline)
+            intent.putExtra("name", name)
+            intent.putExtra("receiverId", receiverId)
             startActivity(intent)
             finish()
         }
@@ -66,6 +85,9 @@ class SelectTime : AppCompatActivity() {
         binding.imageView21.setOnClickListener {
             val intent = Intent(this, ChessActivity::class.java)
             intent.putExtra("time", 5)
+            intent.putExtra("isOnline", isOnline)
+            intent.putExtra("name", name)
+            intent.putExtra("receiverId", receiverId)
             startActivity(intent)
             finish()
         }

@@ -9,6 +9,10 @@ class GameState {
     var isDraw = false
     var winner = ""
 
+    var isPlayingOnline = false
+//    var youAreWhite = true
+    var youAre = 'w'
+
     var whiteTimeRemaining: Long = 60000L // 1 minute in milliseconds
     var blackTimeRemaining: Long = 60000L// 1 minute in milliseconds
     var noTimeLimit = false
