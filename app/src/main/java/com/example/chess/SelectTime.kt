@@ -27,7 +27,7 @@ class SelectTime : AppCompatActivity() {
         var receiverId = intent.getStringExtra("receiverId")
 
         binding.imageView7.setOnClickListener {
-            val intent = Intent(this, MainActivity::class.java)
+            val intent = Intent(this, ChoosePlayerActivity::class.java)
             startActivity(intent)
             finish()
         }

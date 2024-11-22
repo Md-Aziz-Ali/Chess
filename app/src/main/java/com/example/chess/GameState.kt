@@ -97,6 +97,24 @@ class GameState {
         }
     }
 
+    fun getPieceDrawableRotate(piece: String): Int {
+        return when (piece) {
+            "wP" -> R.drawable.pawn_white_rotate
+            "wR" -> R.drawable.rook_white_rotate
+            "wN" -> R.drawable.knight_white_rotate
+            "wB" -> R.drawable.bishop_white_rotate
+            "wQ" -> R.drawable.queen_white_rotate
+            "wK" -> R.drawable.king_white_rotate
+            "bP" -> R.drawable.pawn_black_rotate
+            "bR" -> R.drawable.rook_black_rotate
+            "bN" -> R.drawable.knight_black_rotate
+            "bB" -> R.drawable.bishop_black_rotate
+            "bQ" -> R.drawable.queen_black_rotate
+            "bK" -> R.drawable.king_black_rotate
+            else -> 0
+        }
+    }
+
     // Switch turns after a valid move
     fun switchTurn() {
         isWhiteTurn = !isWhiteTurn

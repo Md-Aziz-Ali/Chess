@@ -156,7 +156,10 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState,
                     // Initialize the piece on this square
                     val piece = gameState.board[row][col]
                     if (piece.isNotEmpty()) {
-                        square.setImageResource(gameState.getPieceDrawable(piece))
+                        if(gameState.youAre == 'w')
+                            square.setImageResource(gameState.getPieceDrawable(piece))
+                        else
+                            square.setImageResource(gameState.getPieceDrawableRotate(piece))
                     }
 
                     // Handle click event for each square
@@ -166,22 +169,14 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState,
                 }
             }
         }
-//        if (gameState.youAre != 'w') {
-//            gridLayout.rotation = 180f
-//        } else {
-//            gridLayout.rotation = 0f
-//        }
+        if (gameState.youAre != 'w') {
+            gridLayout.rotation = 180f
+        } else {
+            gridLayout.rotation = 0f
+        }
 
         if(gameState.noTimeLimit == false)
             startWhiteTimer()
-//        makeOneMove()
-
-//        Handler(Looper.getMainLooper()).postDelayed({
-//            checkOnlineMove()
-////            val intent = Intent(this, SignInActivity::class.java)
-////            startActivity(intent)
-////            finish()
-//        }, 1000)
         checkOnlineMove()
 
     }
@@ -199,7 +194,7 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState,
                         val col = mess.endPosition.second
                         val count = mess.count
                         val upgradedTo = mess.upgradedTo
-//                        Toast.makeText(context, "${selectedRow} ${selectedCol} ${row} ${col}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "${selectedRow} ${selectedCol} ${row} ${col}", Toast.LENGTH_SHORT).show()
                         if(count == prevCount + 1) {
                                 makeMove(gridLayout, row, col, selectedRow, selectedCol, upgradedTo)
                                 prevCount++
@@ -649,7 +644,10 @@ class ChessOnlineBoard(private val context: Context, var gameState: GameState,
                 // Set the piece image if present, otherwise clear the square
                 if (piece.isNotEmpty()) {
 //                    val drawable = gameState.getPieceDrawable(piece) // This method retrieves drawable for piece type
-                    square.setImageResource(gameState.getPieceDrawable(piece))
+                    if(gameState.youAre == 'w')
+                        square.setImageResource(gameState.getPieceDrawable(piece))
+                    else
+                        square.setImageResource(gameState.getPieceDrawableRotate(piece))
                 } else {
                     square.setImageDrawable(null) // Empty square if no piece
                 }

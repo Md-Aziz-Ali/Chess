@@ -1,6 +1,5 @@
 package com.example.chess
 
-import android.R.attr.text
 import android.content.ContentValues.TAG
 import android.content.Intent
 import android.os.Bundle
